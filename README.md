@@ -359,9 +359,3 @@ For questions or suggestions, please contact through:
 - Submit an Issue
 - Create a Pull Request
 
-## Version History
-
-| Version | Date | Description |
-|------|------|------|
-| 0.1.0 | 2024 | Initial version - Basic Helmholtz free energy implementation |
-| 0.1.1 | 2026 | Removed command-line program, optimized test suite, added assert_approx_eq dependency |
