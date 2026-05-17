@@ -1,6 +1,8 @@
 //! IAPWS-95 Header - Reference Constants, Ranges, and Data Structures
 //!
 //! Translated from iapws95.h
+use  crate::iapws95_ideal::*;
+use  crate::iapws95_residual::*;
 
 // ==========================================================================
 // Reference Constants (IAPWS-95 Section 2)
@@ -52,7 +54,7 @@ pub fn inv_reduced_temp(T: f64) -> f64 {
 /// Compute pressure: p = RT*delta*(1 + delta*ddelta) [MPa]
 pub fn calc_pressure(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
-    let dphi_r_ddelta = crate::iapws95_residual::dphi_residual_ddelta(delta, inv_reduced_temp(T));
+    let dphi_r_ddelta = dphi_residual_ddelta(delta, inv_reduced_temp(T));
     IAPWS95_R * T * delta * (1.0 + delta * dphi_r_ddelta)
 }
 
@@ -61,16 +63,22 @@ pub fn calc_internal_energy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
 
-    let phi_o = crate::iapws95_ideal::phi_ideal(delta, tau);
-    let phi_r = crate::iapws95_residual::phi_residual(delta, tau);
+    let phi_o = phi_ideal(delta, tau);
+    let phi_r =phi_residual(delta, tau);
     let dphi_dtau =
-        crate::iapws95_residual::dphi_residual_dtau(delta, tau) + crate::iapws95_ideal::dphi_ideal_dtau(tau);
-
+        dphi_residual_dtau(delta, tau) + crate::iapws95_ideal::dphi_ideal_dtau(tau);
     IAPWS95_R * T * tau * (phi_o + phi_r + tau * dphi_dtau)
 }
 
 /// Compute specific entropy: s = R*(phi_o + phi_r - tau*dphi/dtau) [kJ/(kg*K)]
-pub fn calc_entropy(_T: f64, phi_o: f64, phi_r: f64, dphi_dtau: f64) -> f64 {
+pub fn calc_entropy(T: f64, rho:f64) -> f64{
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+    let phi_o = phi_ideal(delta, tau);
+    let phi_r = phi_residual(delta, tau);
+    let phi_o_t = dphi_ideal_dtau(tau);
+    let phi_r_t = dphi_residual_dtau(delta, tau);
+    let dphi_dtau = phi_o_t + phi_r_t;
     IAPWS95_R * (phi_o + phi_r - dphi_dtau)
 }
 
