@@ -3,6 +3,8 @@
 //! Translated from iapws95.h
 use crate::iapws95_ideal::*;
 use crate::iapws95_residual::*;
+// Re-export inverse solver from dedicated module for backward compatibility
+
 
 // ==========================================================================
 // Reference Constants (IAPWS-95 Section 2)
@@ -150,4 +152,50 @@ pub fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
 pub fn iapws95_in_range(T: f64, _p: Option<f64>) -> bool {
     let _ = _p;
     T >= IAPWS95_TMIN && T <= IAPWS95_TMAX
+}
+
+// ==========================================================================
+// Convenience Functions for (T,rho) → property calculations with °C input
+// ==========================================================================
+
+/// Calculate pressure at given temperature (°C) and density
+pub fn tr2p(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_pressure(t_k, rho)
+}
+
+/// Calculate internal energy at given temperature (°C) and density
+pub fn tr2u(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_internal_energy(t_k, rho)
+}
+
+/// Calculate enthalpy at given temperature (°C) and density
+pub fn tr2h(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_enthalpy(t_k, rho)
+}
+
+/// Calculate entropy at given temperature (°C) and density
+pub fn tr2s(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_entropy(t_k, rho)
+}
+
+/// Calculate constant-volume specific heat at given temperature (°C) and density
+pub fn tr2cv(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_cv(t_k, rho)
+}
+
+/// Calculate constant-pressure specific heat at given temperature (°C) and density
+pub fn tr2cp(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_cp(t_k, rho)
+}
+
+/// Calculate speed of sound at given temperature (°C) and density
+pub fn tr2w(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_speed_of_sound(t_k, rho)
 }

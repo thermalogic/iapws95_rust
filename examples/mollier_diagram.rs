@@ -1,4 +1,4 @@
-use iapws95::iapws95::*;
+use iapws95::iapws95::{calc_entropy, calc_enthalpy, IAPWS95_TCRIT, solve_density};
 use iapws95::iapws95_saturation::calc_saturation_properties;
 
 use plotters::prelude::*;
@@ -9,49 +9,12 @@ const S_MAX: f64 = 12.5;
 const H_MIN: f64 = 0.0;
 const H_MAX: f64 = 4300.0;
 
-fn solve_density_at_pt(p: f64, t: f64) -> Option<f64> {
-    if p <= 0.0 || t <= 0.0 {
-        return None;
-    }
-
-    let t_k = t + 273.15;
-    let rho_c = IAPWS95_RHOCRIT;
-    let mut rho = rho_c;
-
-    for _ in 0..100 {
-        let p_calc = calc_pressure(t_k, rho);
-        let f = p_calc - p;
-        if f.abs() < 1e-8 {
-            return Some(rho);
-        }
-
-        let drho = rho * 1e-6;
-        let p_plus = calc_pressure(t_k, rho + drho);
-        let df_drho = (p_plus - p_calc) / drho;
-
-        if df_drho.abs() < 1e-15 {
-            break;
-        }
-
-        let delta_rho = -f / df_drho;
-        let damping = 0.5;
-        rho = (rho + damping * delta_rho).max(1e-6);
-    }
-
-    let p_calc = calc_pressure(t_k, rho);
-    if (p_calc - p).abs() < 1e-4 {
-        Some(rho)
-    } else {
-        None
-    }
-}
-
 fn generate_isotherm_data(t_c: f64, pressures: &[f64]) -> Vec<(f64, f64)> {
     let t_k = t_c + 273.15;
     let mut points = Vec::new();
 
     for &p in pressures {
-        if let Some(rho) = solve_density_at_pt(p, t_c) {
+        if let Some(rho) = solve_density(p, t_k) {
             let h = calc_enthalpy(t_k, rho);
             let s = calc_entropy(t_k, rho);
             if s >= S_MIN && s <= S_MAX && h >= H_MIN && h <= H_MAX {
@@ -68,7 +31,7 @@ fn generate_isobar_data(p: f64, temperatures_c: &[f64]) -> Vec<(f64, f64)> {
 
     for &t_c in temperatures_c {
         let t_k = t_c + 273.15;
-        if let Some(rho) = solve_density_at_pt(p, t_c) {
+        if let Some(rho) = solve_density(p, t_k) {
             let h = calc_enthalpy(t_k, rho);
             let s = calc_entropy(t_k, rho);
             if s >= S_MIN && s <= S_MAX && h >= H_MIN && h <= H_MAX {

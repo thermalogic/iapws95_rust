@@ -12,19 +12,19 @@ fn main() {
 
     // Example 1: Single-phase properties at T=500K, rho=838.025 kg/m³
     println!("--- Example 1: Single-phase Properties ---");
-    let t = 500.0;
+    let T = 500.0;
     let rho = 838.025;
 
-    let p = calc_pressure(t, rho);
-    let u = calc_internal_energy(t, rho);
-    let h = calc_enthalpy(t, rho);
-    let s = calc_entropy(t, rho);
-    let cv = calc_cv(t, rho);
-    let cp = calc_cp(t, rho);
-    let w = calc_speed_of_sound(t, rho);
+    let p = calc_pressure(T, rho);
+    let u = calc_internal_energy(T, rho);
+    let h = calc_enthalpy(T, rho);
+    let s = calc_entropy(T, rho);
+    let cv = calc_cv(T, rho);
+    let cp = calc_cp(T, rho);
+    let w = calc_speed_of_sound(T, rho);
 
     println!("Input:");
-    println!("  Temperature T = {} K", t);
+    println!("  Temperature T = {} K", T);
     println!("  Density ρ = {} kg/m³", rho);
     println!("\nOutput:");
     println!("  Pressure p = {:.6} MPa", p);
@@ -37,11 +37,11 @@ fn main() {
 
     // Example 2: Saturation properties at T=450K
     println!("\n--- Example 2: Saturation Properties ---");
-    let t_sat = 450.0;
+    let T_sat = 450.0;
 
-    if let Some(sat) = calc_saturation_properties(t_sat) {
+    if let Some(sat) = calc_saturation_properties(T_sat) {
         println!("Input:");
-        println!("  Temperature T = {} K", t_sat);
+        println!("  Temperature T = {} K", T_sat);
         println!("\nSaturated Liquid ('):");
         println!("  Density ρ' = {:.2} kg/m³", sat.rho_l);
         println!("  Enthalpy h' = {:.2} kJ/kg", sat.h_l);
@@ -53,7 +53,7 @@ fn main() {
         println!("\nSaturation Pressure:");
         println!("  p_sat = {:.6} MPa", sat.p_sat);
     } else {
-        println!("Temperature {} K is out of valid saturation range (273.16 - 647.096 K)", t_sat);
+        println!("Temperature {} K is out of valid saturation range (273.16 - 647.096 K)", T_sat);
     }
 
     // Example 3: Properties at multiple temperatures
@@ -62,10 +62,10 @@ fn main() {
              "T(K)", "p_sat(MPa)", "ρ'(kg/m³)", "ρ''(kg/m³)", "h'(kJ/kg)", "h''(kJ/kg)");
     println!("{:-<74}", "");
 
-    for t in [273.16, 373.15, 473.15, 573.15, 647.096] {
-        if let Some(sat) = calc_saturation_properties(t) {
+    for T in [273.16, 373.15, 473.15, 573.15, 647.096] {
+        if let Some(sat) = calc_saturation_properties(T) {
             println!("{:<10.2} {:<12.6} {:<12.2} {:<12.2} {:<12.2} {:<12.2}",
-                     t, sat.p_sat, sat.rho_l, sat.rho_v, sat.h_l, sat.h_v);
+                     T, sat.p_sat, sat.rho_l, sat.rho_v, sat.h_l, sat.h_v);
         }
     }
 }
