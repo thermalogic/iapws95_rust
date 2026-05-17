@@ -70,7 +70,7 @@ pub fn calc_internal_energy(T: f64, rho: f64) -> f64 {
     IAPWS95_R * T * tau * dphi_dtau
 }
 
-/// Compute specific entropy: s = R*(tau*dphi/dtau - phi_o - phi_r) [kJ/(kg*K)]
+/// Compute specific entropy: s = R*(tau*dphi/dtau - phi_o - phi_r) [kJ/(kg·K)]
 pub fn calc_entropy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -92,7 +92,7 @@ pub fn calc_enthalpy(T: f64, rho: f64) -> f64 {
     IAPWS95_R * T * (tau * (dphi_o_dtau + dphi_r_dtau) + 1.0 + delta * dphi_r_ddelta)
 }
 
-/// Compute isochoric heat capacity: cv = R*(-tau^2*(d2phi_o_tau2+d2phi_r_tau2)) [kJ/(kg*K)]
+/// Compute isochoric heat capacity: cv = R*(-tau^2*(d2phi_o_tau2+d2phi_r_tau2)) [kJ/(kg·K)]
 pub fn calc_cv(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
@@ -101,7 +101,7 @@ pub fn calc_cv(T: f64, rho: f64) -> f64 {
     IAPWS95_R * (-tau * tau * (phi_o_tt + phi_r_tt))
 }
 
-/// Compute isobaric heat capacity: cp = cv + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) [kJ/(kg*K)]
+/// Compute isobaric heat capacity: cp = cv + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) [kJ/(kg·K)]
 pub fn calc_cp(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);

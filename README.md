@@ -251,7 +251,8 @@ Uses Newton's method with multiple initial guesses based on ideal gas law:
 **Usage Example**:
 
 ```rust
-use iapws95::iapws95::{solve_density, calc_enthalpy};
+use iapws95::iapws95_pT::solve_density;
+use iapws95::iapws95::calc_enthalpy;
 
 // Given p=16.10 MPa, T=808.25 K (535.10°C)
 if let Some(rho) = solve_density(16.10, 808.25) {
