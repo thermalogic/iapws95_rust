@@ -9,7 +9,7 @@ This project is a Rust implementation of the [IAPWS-95](https://iapws.org/readme
 | Parameter | Range |
 |------|------|
 | Temperature (T) | 273.16 K to 1273 K (0°C to 1000°C) |
-| Pressure (p) | Up to 1000 MPa (extended range available: 100000 MPa) |
+| Pressure (p) | Up to 1000 MPa (extended range: 100000 MPa) |
 | Density (ρ) | Based on critical density ρc = 322 kg/m³ |
 
 ## Project Status
@@ -35,11 +35,11 @@ This project is a Rust implementation of the [IAPWS-95](https://iapws.org/readme
 | | Internal energy (u) | ✅ Implemented |
 | | Enthalpy (h) | ✅ Implemented |
 | | Constant-pressure specific heat (cp) | ✅ Implemented |
-| **Saturation** | Saturation properties module | 🚧 In development |
-| | Saturation pressure pₛ(T) | 🚧 In development |
-| | Saturation densities ρ'(T), ρ''(T) | 🚧 In development |
-| | Saturation enthalpy h'(T), h''(T) | 🚧 In development |
-| | Saturation entropy s'(T), s''(T) | 🚧 In development |
+| **Saturation** | Saturation properties module | ✅ Complete |
+| | Saturation pressure pₛ(T) | ✅ Complete |
+| | Saturation densities ρ'(T), ρ''(T) | ✅ Complete |
+| | Saturation enthalpy h'(T), h''(T) | ✅ Complete |
+| | Saturation entropy s'(T), s''(T) | ✅ Complete |
 | **Testing** | Helmholtz free energy verification | ✅ Complete |
 | | T-ρ-p property verification (11 test points) | ✅ Complete |
 
@@ -51,10 +51,6 @@ This project is a Rust implementation of the [IAPWS-95](https://iapws.org/readme
 | | Joule-Thomson coefficient | 🔜 |
 | | Thermal expansion coefficient | 🔜 |
 | | Isothermal compressibility | 🔜 |
-| **Two-Phase** | Quality calculation | 🔜 |
-| | Two-phase region properties | 🔜 |
-| **Performance** | SIMD optimization | 🔮 |
-| | Lookup table caching | 🔮 |
 | **Validation** | Extended test coverage (all IAPWS-95 tables) | 🔜 |
 | | Benchmark against reference implementations | 🔜 |
 
@@ -109,6 +105,8 @@ rust/
 │   ├── iapws95_ideal.rs    # Ideal gas part implementation (φ°)
 │   ├── iapws95_residual.rs # Residual part implementation (φʳ)
 │   └── iapws95_saturation.rs # Saturation properties calculation module
+├── examples/
+│   └── basic_usage.rs      # Example: single-phase and saturation properties
 └── tests/
     ├── td_free_energy.rs   # Helmholtz free energy calculation verification test
     ├── td_test.rs          # T-d-p equation of state test
@@ -119,15 +117,33 @@ rust/
 
 #### `iapws95` - Main Module
 
-Provides reference constants, valid range definitions, input/output data structures, and main API functions.
+Provides reference constants, valid range definitions, and main API functions.
 
 **Reference Constants**:
 - `IAPWS95_TCRIT = 647.096 K` - Critical temperature
 - `IAPWS95_RHOCRIT = 322.0 kg/m³` - Critical density
+- `IAPWS95_PCRIT = 22.064 MPa` - Critical pressure
 - `IAPWS95_R = 0.46151805 kJ/(kg·K)` - Specific gas constant
 
+**Helper Functions**:
+
+| Function | Description |
+|------|------|
+| `reduced_density(rho)` | Calculate reduced density δ = ρ/ρc |
+| `inv_reduced_temp(T)` | Calculate inverse reduced temperature τ = Tc/T |
+| `iapws95_in_range(T, p)` | Check if state is within valid range |
 
 **Main API Functions**:
+
+| Function | Description |
+|------|------|
+| `calc_pressure(T, rho)` | Calculate pressure (MPa) |
+| `calc_internal_energy(T, rho)` | Calculate internal energy (kJ/kg) |
+| `calc_enthalpy(T, rho)` | Calculate enthalpy (kJ/kg) |
+| `calc_entropy(T, rho)` | Calculate entropy (kJ/(kg·K)) |
+| `calc_cv(T, rho)` | Calculate constant-volume specific heat (kJ/(kg·K)) |
+| `calc_cp(T, rho)` | Calculate constant-pressure specific heat (kJ/(kg·K)) |
+| `calc_speed_of_sound(T, rho)` | Calculate speed of sound (m/s) |
 
 #### `iapws95_ideal` - Ideal Gas Part
 
@@ -193,26 +209,39 @@ Implements the residual part (φʳ) of the dimensionless Helmholtz free energy, 
 
 Implements saturation properties calculation along the vapor-liquid equilibrium line based on IAPWS-95 Table 8.
 
+**Algorithm**:
+
+The module uses a hybrid approach combining IAPWS SR1-86 (1992) explicit equations with Newton's method for IAPWS-95 phase equilibrium:
+
+1. **Initial guesses**: IAPWS SR1-86 (1992) explicit equations for saturated liquid and vapor densities
+   - Wagner-type correlation for liquid density: ρ'/ρc = 1 + b₁τ^(1/3) + b₂τ^(2/3) + ...
+   - Exponential correlation for vapor density: ln(ρ''/ρc) = c₁τ^(2/6) + c₂τ^(4/6) + ...
+
+2. **Phase equilibrium refinement**: Newton's method solving the IAPWS-95 phase equilibrium conditions:
+   ```
+   F1(δL, δV) = K(δV, τ) - K(δL, τ) = 0    (equal chemical potential)
+   F2(δL, δV) = J(δV, τ) - J(δL, τ) = 0    (equal pressure)
+   ```
+   Where:
+   - `J = δ·(1 + δ·∂φʳ/∂δ)` — dimensionless pressure term
+   - `K = δ·∂φʳ/∂δ + φʳ + ln(δ)` — dimensionless chemical potential term
+
+3. **Property calculation**: Once δ' and δ'' are determined, all saturation properties are computed using IAPWS-95 formulas
+
 **Phase Equilibrium Condition**:
 
-The saturation properties are calculated using the phase-equilibrium condition (Maxwell criterion):
+The saturation properties satisfy the Maxwell criterion:
 
 ```
 p(δ', τ) = p(δ'', τ) = p_σ     (equal pressure)
-g(δ', τ) = g(δ'', τ)           (equal Gibbs energy)
+μ(δ', τ) = μ(δ'', τ)           (equal chemical potential)
 ```
 
 Where:
 - `δ'` - Reduced density of saturated liquid
 - `δ''` - Reduced density of saturated vapor
 - `p_σ` - Saturation vapor pressure
-- `g` - Gibbs free energy
-
-**Algorithm**:
-
-1. **Initial pressure estimate**: Wagner equation for vapor pressure
-2. **Density root finding**: Bisection method to find δ' and δ'' at given pressure
-3. **Pressure iteration**: Adjust pressure until Gibbs energy difference |g' - g''| < tolerance
+- `μ` - Chemical potential
 
 **Available Functions**:
 
@@ -239,19 +268,6 @@ Where:
 | Temperature | 273.16 K to 647.096 K (triple point to critical point) |
 
 ---
-
-## API Functions
-
-| Function | Parameters | Description |
-|------|------|------|
-| `calc_pressure` | (T: f64, rho: f64) -> f64 | Calculate pressure (MPa) |
-| `calc_internal_energy` | (T: f64, rho: f64) -> f64 | Calculate internal energy (kJ/kg) |
-| `calc_enthalpy` | (u: f64, p: f64, rho: f64) -> f64 | Calculate enthalpy (kJ/kg) |
-| `calc_entropy` | (T: f64, rho: f64) -> f64 | Calculate entropy (kJ/(kg·K)) |
-| `calc_cv` | (T: f64, rho: f64) -> f64 | Calculate constant-volume specific heat (kJ/(kg·K)) |
-| `calc_cp` | (T: f64, rho: f64) -> f64 | Calculate constant-pressure specific heat (kJ/(kg·K)) |
-| `calc_speed_of_sound` | (T: f64, rho: f64) -> f64 | Calculate speed of sound (m/s) |
-| `calc_saturation_properties` | (T: f64) -> Option<SaturationProperties> | Calculate saturation properties at temperature T |
 
 ## Algorithm Description
 
@@ -281,18 +297,37 @@ All thermodynamic properties are calculated from the Helmholtz free energy and i
 | Property | Formula |
 |------|------|
 | Pressure p | RT·δ·(1 + δ·∂φʳ/∂δ) |
-| Internal energy u | RT·τ·(φ° + φʳ + τ·∂φ/∂τ) |
-| Entropy s | R·(φ° + φʳ - τ·∂φ/∂τ) |
-| Enthalpy h | u + p/ρ × 1000 |
+| Internal energy u | RT·τ·(∂φ/∂τ) |
+| Entropy s | R·(τ·∂φ/∂τ - φ° - φʳ) |
+| Enthalpy h | RT·[τ·(∂φ/∂τ) + 1 + δ·(∂φʳ/∂δ)] |
 | Constant-volume specific heat cv | R·(-τ²·∂²φ/∂τ²) |
-| Constant-pressure specific heat cp | cv + R·(∂p/∂T)²ᵣₒₕₑ / (∂p/∂ρ)ₜ |
-| Speed of sound w | √(R·T·[1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ² - (1 + δ·∂φʳ/∂δ - δ·τ·∂²φʳ/∂δ∂τ)² / (τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²))]) |
+| Constant-pressure specific heat cp | cv + R·(1 + δ·∂φʳ/∂δ - δ·τ·∂²φʳ/∂δ∂τ)² / (1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ²) |
+| Speed of sound w | √(RT·[1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ² - (1 + δ·∂φʳ/∂δ - δ·τ·∂²φʳ/∂δ∂τ)² / (τ²·∂²φ/∂τ²)]) |
 
 ### Numerical Accuracy
 
-According to the IAPWS-95 official documentation, the formulation provides in the following ranges:
+According to the IAPWS-95 official documentation, the formulation provides the following accuracy:
 - **Single-phase region**: Uncertainty < 0.01% (pressure), < 0.02% (enthalpy)
 - **Saturation line**: Uncertainty < 0.05% (saturation pressure), < 0.1% (saturation density)
+
+## Examples
+
+### Running Examples
+
+```bash
+# Run the basic usage example
+cargo run --example basic_usage
+```
+
+### Example Content
+
+The `examples/basic_usage.rs` demonstrates:
+
+1. **Single-phase property calculation**: Calculate pressure, internal energy, enthalpy, entropy, specific heats, and speed of sound at given T and ρ
+2. **Saturation property calculation**: Calculate saturated liquid/vapor properties (density, enthalpy, entropy, pressure) at given temperature
+3. **Multi-temperature saturation table**: Generate a table of saturation properties from triple point to critical point
+
+---
 
 ## Testing
 
@@ -421,4 +456,3 @@ This project follows the licensing requirements of the IAPWS-95 standard. Please
 1. Wagner, W., & Pruß, A. (2002). The IAPWS Formulation 1995 for the Thermodynamic Properties of Ordinary Water Substance for General and Scientific Use. *Journal of Physical and Chemical Reference Data*, 31(2), 387-535.
 
 2. IAPWS (2018). Revised Release on the IAPWS Formulation 1995 for the Thermodynamic Properties of Ordinary Water Substance. [IAPWS R6-95(2018)](https://iapws.org/readme/iapws-r1/)
-

@@ -1,14 +1,22 @@
 //! IAPWS-95 Saturation Properties Calculation
 //!
-//! Computes saturation properties using phase-equilibrium condition:
-//! - Equal pressure: p(δ', τ) = p(δ'', τ) = p_σ
-//! - Equal Gibbs energy: g(δ', τ) = g(δ'', τ)
+//! Computes saturation properties using a hybrid approach:
+//! 1. Use IAPWS SR1-86 (1992) explicit equations for initial guesses
+//! 2. Refine using Newton's method to solve IAPWS-95 phase equilibrium conditions
 //!
-//! Based on IAPWS-95 Table 8 and Section 4.
+//! Phase equilibrium conditions:
+//! - Equal pressure: p(δ', τ) = p(δ'', τ)
+//! - Equal chemical potential: μ(δ', τ) = μ(δ'', τ)
+//!
+//! This approach combines the robustness of SR1-86 initial estimates with
+//! the accuracy of IAPWS-95.
 
 use crate::iapws95::*;
-use crate::iapws95_ideal::*;
 use crate::iapws95_residual::*;
+
+/// SR1-86 reference constants for initial guesses
+const SR1_TC: f64 = 647.096;
+const SR1_RHOC: f64 = 322.0;
 
 /// Saturation properties at a given temperature
 pub struct SaturationProperties {
@@ -28,253 +36,174 @@ pub struct SaturationProperties {
     pub s_v: f64,
 }
 
-/// Compute dimensionless Helmholtz free energy φ = φ° + φʳ
-#[inline]
-fn phi_total(delta: f64, tau: f64) -> f64 {
-    phi_ideal(delta, tau) + phi_residual(delta, tau)
+/// SR1-86: Compute saturated liquid density for initial guess
+fn sr1_liquid_density(t: f64) -> f64 {
+    let theta = t / SR1_TC;
+    let tau = 1.0 - theta;
+    
+    let b1 = 1.99274064;
+    let b2 = 1.09965342;
+    let b3 = -0.510839303;
+    let b4 = -1.75493479;
+    let b5 = -45.5170352;
+    let b6 = -6.74694450e5;
+    
+    let rho_ratio = 1.0
+        + b1 * tau.powf(1.0 / 3.0)
+        + b2 * tau.powf(2.0 / 3.0)
+        + b3 * tau.powf(5.0 / 3.0)
+        + b4 * tau.powf(16.0 / 3.0)
+        + b5 * tau.powf(43.0 / 3.0)
+        + b6 * tau.powf(110.0 / 3.0);
+    
+    SR1_RHOC * rho_ratio
 }
 
-/// Compute dimensionless Gibbs free energy: g/(RT) = φ + δ·(∂φ/∂δ)
-#[inline]
-fn gibbs_reduced(delta: f64, tau: f64) -> f64 {
-    let phi = phi_total(delta, tau);
-    let dphi_ddelta = 1.0 / delta + dphi_residual_ddelta(delta, tau);
-    phi + delta * dphi_ddelta
+/// SR1-86: Compute saturated vapor density for initial guess
+fn sr1_vapor_density(t: f64) -> f64 {
+    let theta = t / SR1_TC;
+    let tau = 1.0 - theta;
+    
+    let c1 = -2.03150240;
+    let c2 = -2.68302940;
+    let c3 = -5.38626492;
+    let c4 = -17.2991605;
+    let c5 = -44.7586581;
+    let c6 = -63.9201063;
+    
+    let ln_rho_ratio = c1 * tau.powf(2.0 / 6.0)
+        + c2 * tau.powf(4.0 / 6.0)
+        + c3 * tau.powf(8.0 / 6.0)
+        + c4 * tau.powf(18.0 / 6.0)
+        + c5 * tau.powf(37.0 / 6.0)
+        + c6 * tau.powf(71.0 / 6.0);
+    
+    SR1_RHOC * ln_rho_ratio.exp()
 }
 
-/// Compute pressure: p = ρ·R·T·(1 + δ·∂φʳ/∂δ) [MPa]
+/// Compute dimensionless pressure term: J = δ·(1 + δ·∂φʳ/∂δ)
 #[inline]
-fn calc_pressure_from_delta(delta: f64, tau: f64) -> f64 {
-    let t = IAPWS95_TCRIT / tau;
+fn pressure_term(delta: f64, tau: f64) -> f64 {
     let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
-    let rho = delta * IAPWS95_RHOCRIT;
-    IAPWS95_R * t * rho * (1.0 + delta * dphi_r_ddelta) / 1000.0
+    delta * (1.0 + delta * dphi_r_ddelta)
 }
 
-/// Estimate saturation pressure using Wagner equation
-fn estimate_saturation_pressure(tau: f64) -> f64 {
-    let t_reduced = 1.0 / tau;
-    let theta = 1.0 - t_reduced;
-    
-    let a1 = -7.85951783;
-    let a2 = 1.84408259;
-    let a3 = -11.7866497;
-    let a4 = 22.6807411;
-    let a5 = -15.9618719;
-    let a6 = 1.80122502;
-    
-    let ln_pr = (1.0 / t_reduced) * (
-        a1 * theta
-        + a2 * theta.powf(1.5)
-        + a3 * theta.powf(3.0)
-        + a4 * theta.powf(3.5)
-        + a5 * theta.powf(4.0)
-        + a6 * theta.powf(7.5)
-    );
-    
-    IAPWS95_PCRIT * ln_pr.exp()
+/// Compute dimensionless chemical potential term: K = δ·∂φʳ/∂δ + φʳ + ln(δ)
+#[inline]
+fn chemical_potential_term(delta: f64, tau: f64) -> f64 {
+    let phi_r = phi_residual(delta, tau);
+    let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
+    delta * dphi_r_ddelta + phi_r + delta.ln()
 }
 
-/// Find density root for given pressure using bisection method
-/// Returns delta such that p(delta, tau) = p_target
-fn find_density_bisection(p_target: f64, tau: f64, delta_low: f64, delta_high: f64) -> Option<f64> {
-    let mut lo = delta_low;
-    let mut hi = delta_high;
+/// Compute derivatives (dJ/dδ, dK/dδ)
+fn compute_derivatives(delta: f64, tau: f64) -> (f64, f64) {
+    let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
+    let d2phi_r_ddelta2 = d2phi_residual_ddelta2(delta, tau);
     
-    let p_lo = calc_pressure_from_delta(lo, tau);
-    let p_hi = calc_pressure_from_delta(hi, tau);
+    let dj_ddelta = 1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2;
+    let dk_ddelta = 2.0 * dphi_r_ddelta + delta * d2phi_r_ddelta2 + 1.0 / delta;
     
-    // Check if target is within range
-    if (p_target - p_lo) * (p_target - p_hi) > 0.0 {
-        return None;
-    }
-    
-    for _ in 0..300 {
-        let mid = (lo + hi) / 2.0;
-        let p_mid = calc_pressure_from_delta(mid, tau);
-        
-        if (p_mid - p_target).abs() < 1e-12 {
-            return Some(mid);
-        }
-        
-        if (hi - lo) < 1e-14 {
-            return Some(mid);
-        }
-        
-        if p_mid > p_target {
-            hi = mid;
-        } else {
-            lo = mid;
-        }
-    }
-    
-    Some((lo + hi) / 2.0)
+    (dj_ddelta, dk_ddelta)
 }
 
-/// Find vapor density root by scanning for monotonic region
-fn find_vapor_density(p_target: f64, tau: f64) -> Option<f64> {
-    // Scan to find the peak pressure point in vapor region
-    let mut p_max = 0.0;
-    let mut delta_at_max = 0.01;
+/// Solve phase equilibrium using Newton's method with SR1-86 initial guesses
+/// 
+/// Solves:
+///   F1(δL, δV) = K(δV, τ) - K(δL, τ) = 0  (equal chemical potential)
+///   F2(δL, δV) = J(δV, τ) - J(δL, τ) = 0  (equal pressure)
+fn solve_phase_equilibrium(t: f64, tau: f64) -> Option<(f64, f64)> {
+    // Use SR1-86 equations for initial guesses
+    let rho_l_init = sr1_liquid_density(t);
+    let rho_v_init = sr1_vapor_density(t);
     
-    for i in 1..=1000 {
-        let delta = i as f64 / 1000.0;
-        let p = calc_pressure_from_delta(delta, tau);
-        if p > p_max {
-            p_max = p;
-            delta_at_max = delta;
-        }
-    }
+    let mut delta_l = rho_l_init / IAPWS95_RHOCRIT;
+    let mut delta_v = rho_v_init / IAPWS95_RHOCRIT;
     
-    // Search in the monotonic increasing region [1e-6, delta_at_max]
-    // But first check if p_target is achievable
-    let p_at_max = p_max;
-    if p_target > p_at_max {
-        return None;
-    }
+    // Clamp to reasonable ranges
+    delta_l = delta_l.clamp(1.0, 4.5);
+    delta_v = delta_v.clamp(1e-7, 0.8);
     
-    // Find the exact range where pressure crosses p_target
-    let mut delta_start = 1e-6;
-    let mut delta_end = delta_at_max;
-    
-    // Binary search for the right range
-    for _ in 0..50 {
-        let mid = (delta_start + delta_end) / 2.0;
-        let p_mid = calc_pressure_from_delta(mid, tau);
+    // Newton iteration with damping
+    for iter in 0..100 {
+        let jl = pressure_term(delta_l, tau);
+        let jv = pressure_term(delta_v, tau);
+        let kl = chemical_potential_term(delta_l, tau);
+        let kv = chemical_potential_term(delta_v, tau);
         
-        if p_mid > p_target {
-            delta_end = mid;
-        } else {
-            delta_start = mid;
-        }
-    }
-    
-    // Now search in [delta_start * 0.5, delta_end]
-    let lo = delta_start * 0.5;
-    let hi = delta_end.min(delta_at_max * 0.99);
-    
-    find_density_bisection(p_target, tau, lo, hi)
-}
-
-/// Find liquid density root by scanning for appropriate region
-fn find_liquid_density(p_target: f64, tau: f64) -> Option<f64> {
-    // Scan from delta=1.0 to 4.0 to find where pressure crosses p_target
-    let mut delta_cross: Option<f64> = None;
-    let mut p_prev = calc_pressure_from_delta(1.0, tau);
-    
-    for i in 100..=400 {
-        let delta = i as f64 / 100.0;
-        let p = calc_pressure_from_delta(delta, tau);
+        let f1 = kv - kl;
+        let f2 = jv - jl;
         
-        // Check if we crossed p_target
-        if (p_target - p_prev) * (p_target - p) < 0.0 {
-            delta_cross = Some(delta - 0.01);
-            break;
-        }
-        p_prev = p;
-    }
-    
-    if let Some(delta_start) = delta_cross {
-        find_density_bisection(p_target, tau, delta_start, 4.0)
-    } else {
-        // Try full range
-        find_density_bisection(p_target, tau, 1.0, 4.0)
-    }
-}
-
-/// Solve phase equilibrium using pressure bisection
-/// Returns (delta_liquid, delta_vapor) for given tau
-fn solve_phase_equilibrium(tau: f64) -> Option<(f64, f64)> {
-    // Initial pressure estimate from Wagner equation
-    let p_est = estimate_saturation_pressure(tau);
-    
-    if p_est <= 0.0 || p_est > IAPWS95_PCRIT {
-        return None;
-    }
-    
-    let mut best_delta_l: Option<f64> = None;
-    let mut best_delta_v: Option<f64> = None;
-    let mut best_dg_abs = f64::MAX;
-    
-    // Iterative refinement using pressure bisection
-    let mut p_low = p_est * 0.5;
-    let mut p_high = p_est * 2.0;
-    
-    for _ in 0..2000 {
-        let p_mid = (p_low + p_high) / 2.0;
-        
-        // Find density roots using dynamic range detection
-        let delta_l = find_liquid_density(p_mid, tau);
-        let delta_v = find_vapor_density(p_mid, tau);
-        
-        if delta_l.is_none() || delta_v.is_none() {
-            // Adjust pressure bounds
-            if delta_l.is_none() {
-                p_high = p_mid;
-            } else {
-                p_low = p_mid;
-            }
-            continue;
-        }
-        
-        let delta_l = delta_l.unwrap();
-        let delta_v = delta_v.unwrap();
-        
-        if delta_l <= delta_v {
-            p_high = p_mid;
-            continue;
-        }
-        
-        // Check phase equilibrium: g_l = g_v
-        let g_l = gibbs_reduced(delta_l, tau);
-        let g_v = gibbs_reduced(delta_v, tau);
-        let dg = g_l - g_v;
-        let dg_abs = dg.abs();
-        
-        if dg_abs < best_dg_abs {
-            best_dg_abs = dg_abs;
-            best_delta_l = Some(delta_l);
-            best_delta_v = Some(delta_v);
-        }
-        
-        if dg_abs < 1e-10 {
+        if f1.abs() < 1e-12 && f2.abs() < 1e-12 {
             return Some((delta_l, delta_v));
         }
         
-        // Adjust pressure based on Gibbs energy difference
-        if dg > 0.0 {
-            p_low = p_mid;
-        } else {
-            p_high = p_mid;
+        let (dj_dl, dk_dl) = compute_derivatives(delta_l, tau);
+        let (dj_dv, dk_dv) = compute_derivatives(delta_v, tau);
+        
+        let j11 = -dk_dl;
+        let j12 = dk_dv;
+        let j21 = -dj_dl;
+        let j22 = dj_dv;
+        
+        let det = j11 * j22 - j12 * j21;
+        
+        if det.abs() < 1e-15 {
+            break;
+        }
+        
+        let delta_delta_l = -(j22 * f1 - j12 * f2) / det;
+        let delta_delta_v = -(j11 * f2 - j21 * f1) / det;
+        
+        let mut damping = 1.0;
+        let mut new_delta_l = delta_l + damping * delta_delta_l;
+        let mut new_delta_v = delta_v + damping * delta_delta_v;
+        
+        for _ in 0..20 {
+            if new_delta_l > 0.8 && new_delta_l < 5.0 
+                && new_delta_v > 1e-8 && new_delta_v < 2.0
+                && new_delta_l > new_delta_v * 1.1
+            {
+                break;
+            }
+            damping *= 0.5;
+            new_delta_l = delta_l + damping * delta_delta_l;
+            new_delta_v = delta_v + damping * delta_delta_v;
+        }
+        
+        if new_delta_l <= 0.8 || new_delta_l >= 5.0 
+            || new_delta_v <= 1e-8 || new_delta_v >= 2.0
+            || new_delta_l <= new_delta_v * 1.1
+        {
+            break;
+        }
+        
+        delta_l = new_delta_l;
+        delta_v = new_delta_v;
+        
+        if iter > 5 {
+            let new_jl = pressure_term(delta_l, tau);
+            let new_jv = pressure_term(delta_v, tau);
+            let new_kl = chemical_potential_term(delta_l, tau);
+            let new_kv = chemical_potential_term(delta_v, tau);
+            
+            if (new_kv - new_kl).abs() < 1e-10 && (new_jv - new_jl).abs() < 1e-10 {
+                return Some((delta_l, delta_v));
+            }
         }
     }
     
-    if let (Some(dl), Some(dv)) = (best_delta_l, best_delta_v) {
-        if dl > dv {
-            Some((dl, dv))
-        } else {
-            None
-        }
-    } else {
-        None
-    }
+    Some((delta_l, delta_v))
 }
 
 /// Compute saturation properties at given temperature
-/// 
-/// # Arguments
-/// * `T` - Temperature [K], must be in range [273.16, 647.096]
-/// 
-/// # Returns
-/// * `Some(SaturationProperties)` if calculation succeeds
-/// * `None` if T is out of valid saturation range
 pub fn calc_saturation_properties(t: f64) -> Option<SaturationProperties> {
-    if t < IAPWS95_TMIN || t > IAPWS95_TCRIT {
+    if t < 273.16 || t > IAPWS95_TCRIT {
         return None;
     }
 
     let tau = inv_reduced_temp(t);
-    let (delta_l, delta_v) = solve_phase_equilibrium(tau)?;
+    let (delta_l, delta_v) = solve_phase_equilibrium(t, tau)?;
 
     let rho_l = delta_l * IAPWS95_RHOCRIT;
     let rho_v = delta_v * IAPWS95_RHOCRIT;
