@@ -3,8 +3,6 @@
 //! Translated from iapws95.h
 use crate::iapws95_ideal::*;
 use crate::iapws95_residual::*;
-// Re-export inverse solver from dedicated module for backward compatibility
-
 
 // ==========================================================================
 // Reference Constants (IAPWS-95 Section 2)

@@ -13,7 +13,7 @@
 
 pub mod iapws95;
 pub mod iapws95_ideal;
-pub mod iapws95_pt;
+pub mod iapws95_pT;
 pub mod iapws95_residual;
 pub mod iapws95_saturation;
 

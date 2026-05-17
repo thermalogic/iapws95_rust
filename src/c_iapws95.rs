@@ -6,7 +6,7 @@
 
 use crate::iapws95::*;
 use crate::iapws95_saturation::calc_saturation_properties;
-use crate::iapws95_pt::solve_density;
+use crate::iapws95_pT::solve_density;
 /// C-compatible saturation properties structure
 #[repr(C)]
 pub struct CIAPWS95SatProps {
