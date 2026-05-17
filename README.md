@@ -123,7 +123,7 @@ cargo build --release
 
 ### Usage Example
 
-#### Rust (Direct Computation)
+#### Rust
 
 ```rust
 use iapws95::iapws95::*;
@@ -341,6 +341,7 @@ Where:
 | Function | Description | Returns |
 |------|------|------|
 | `calc_saturation_properties(T)` | Calculate all saturation properties at temperature T | `Option<SaturationProperties>` |
+| `sat_t(t）` | Calculate all saturation properties at temperature t,°C | `Option<SaturationProperties>` |
 
 **SaturationProperties Structure**:
 

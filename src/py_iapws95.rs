@@ -1,8 +1,6 @@
 use pyo3::prelude::*;
 
 use crate::iapws95::*;
-use crate::iapws95_saturation::calc_saturation_properties;
-
 // ==========================================================================
 // Functions for (T,rho) → property calculations - direct computation
 // ==========================================================================
@@ -54,9 +52,8 @@ fn tr2w(t_c: f64, rho: f64) -> PyResult<f64> {
 // ==========================================================================
 
 #[pyfunction]
-fn saturation_properties(t_c: f64) -> PyResult<(f64, f64, f64, f64, f64, f64, f64)> {
-    let t_k = t_c + 273.15;
-    let sat = calc_saturation_properties(t_k)
+fn sat_t(t_c: f64) -> PyResult<(f64, f64, f64, f64, f64, f64, f64)> {
+    let sat = iapws95_saturation::sat_t(t_c)
         .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyValueError, _>(
             format!("Temperature {} C is out of valid saturation range", t_c)
         ))?;

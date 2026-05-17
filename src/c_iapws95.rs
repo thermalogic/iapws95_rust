@@ -5,7 +5,7 @@
 //! Output: target/release/libiapws95.so (Linux), target/release/iapws95.dll (Windows)
 
 use crate::iapws95::*;
-use crate::iapws95_saturation::calc_saturation_properties;
+use crate::iapws95_saturation::sat_t;
 /// C-compatible saturation properties structure
 #[repr(C)]
 pub struct CIAPWS95SatProps {
@@ -62,7 +62,7 @@ pub extern "C" fn iapws95_tr2w(t_c: f64, rho: f64) -> f64 {
 // ==========================================================================
 
 #[no_mangle]
-pub extern "C" fn iapws95_saturation_properties(t_c: f64, props: *mut CIAPWS95SatProps) -> i32 {
+pub extern "C" fn iapws95_sat_t(t_c: f64, props: *mut CIAPWS95SatProps) -> i32 {
     if props.is_null() {
         return -1;
     }
@@ -73,7 +73,7 @@ pub extern "C" fn iapws95_saturation_properties(t_c: f64, props: *mut CIAPWS95Sa
         return -1;
     }
 
-    if let Some(sat) = calc_saturation_properties(t_k) {
+    if let Some(sat) = sat_t(t_c) {
         unsafe {
             (*props).p_sat = sat.p_sat;
             (*props).rho_l = sat.rho_l;

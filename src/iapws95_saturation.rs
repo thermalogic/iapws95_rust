@@ -224,3 +224,7 @@ pub fn calc_saturation_properties(t: f64) -> Option<SaturationProperties> {
         s_v,
     })
 }
+
+pub fn sat_t(t_c: f64) -> Option<SaturationProperties> {
+   return calc_saturation_properties(t_c+273.15); 
+}
