@@ -1,8 +1,8 @@
 //! IAPWS-95 Header - Reference Constants, Ranges, and Data Structures
 //!
 //! Translated from iapws95.h
-use  crate::iapws95_ideal::*;
-use  crate::iapws95_residual::*;
+use crate::iapws95_ideal::*;
+use crate::iapws95_residual::*;
 
 // ==========================================================================
 // Reference Constants (IAPWS-95 Section 2)
@@ -59,20 +59,16 @@ pub fn calc_pressure(T: f64, rho: f64) -> f64 {
     IAPWS95_R * T * rho * (1.0 + delta * dphi_r_ddelta) / 1000.0
 }
 
-/// Compute specific internal energy: u = RT*tau*(phi_o + phi_r + tau*dphi/dtau) [kJ/kg]
+/// Compute specific internal energy: u = RT*tau*(dphi_o/dtau + dphi_r/dtau) [kJ/kg]
 pub fn calc_internal_energy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
-
-    let phi_o = phi_ideal(delta, tau);
-    let phi_r =phi_residual(delta, tau);
-    let dphi_dtau =
-        dphi_residual_dtau(delta, tau) + crate::iapws95_ideal::dphi_ideal_dtau(tau);
-    IAPWS95_R * T * tau * (phi_o + phi_r + tau * dphi_dtau)
+    let dphi_dtau = dphi_residual_dtau(delta, tau) + dphi_ideal_dtau(tau);
+    IAPWS95_R * T * tau * dphi_dtau
 }
 
 /// Compute specific entropy: s = R*(tau*dphi/dtau - phi_o - phi_r) [kJ/(kg*K)]
-pub fn calc_entropy(T: f64, rho:f64) -> f64{
+pub fn calc_entropy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
     let phi_o = phi_ideal(delta, tau);
@@ -83,18 +79,23 @@ pub fn calc_entropy(T: f64, rho:f64) -> f64{
     IAPWS95_R * (tau * dphi_dtau - phi_o - phi_r)
 }
 
-/// Compute specific enthalpy: h = u + p/rho [kJ/kg]
-pub fn calc_enthalpy(_T: f64, rho: f64, p: f64, u: f64) -> f64 {
-    u + p / rho * 1000.0 // p in MPa, rho in kg/m3: p/rho*1000 converts to kJ/kg
+/// Compute specific enthalpy: h = RT*[tau*(dphi_o/dtau + dphi_r/dtau) + 1 + delta*(1 + delta*dphi_r/ddelta)] [kJ/kg]
+pub fn calc_enthalpy(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+    let dphi_o_dtau = dphi_ideal_dtau(tau);
+    let dphi_r_dtau = dphi_residual_dtau(delta, tau);
+    let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
+    IAPWS95_R * T * (tau * (dphi_o_dtau + dphi_r_dtau) + 1.0 + delta * dphi_r_ddelta)
 }
 
-/// Compute isochoric heat capacity: cv = R*(-tau^2*(d2phi_o_tau2+d2phi_r_tau2) [kJ/(kg*K)]
+/// Compute isochoric heat capacity: cv = R*(-tau^2*(d2phi_o_tau2+d2phi_r_tau2)) [kJ/(kg*K)]
 pub fn calc_cv(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
-    let phi_o_tt=d2phi_ideal_dtau2(tau);
-    let phi_r_tt=d2phi_residual_dtau2(delta,tau);
-    IAPWS95_R * (-tau*tau *(phi_o_tt+phi_r_tt))
+    let phi_o_tt = d2phi_ideal_dtau2(tau);
+    let phi_r_tt = d2phi_residual_dtau2(delta, tau);
+    IAPWS95_R * (-tau * tau * (phi_o_tt + phi_r_tt))
 }
 
 /// Compute isobaric heat capacity: cp = cv + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) [kJ/(kg*K)]
