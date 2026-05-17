@@ -398,7 +398,7 @@ The Python bindings provide three categories of functions based on input paramet
 
 | Function | Description | Parameters | Returns |
 |------|------|------|------|
-| `saturation_properties(t)` | Calculate all saturation properties at temperature | t: °C | (p_sat, ρ', ρ'', h', h'', s', s'') |
+| `sat_t(t)` | Calculate all saturation properties at temperature | t: °C | (p_sat, ρ', ρ'', h', h'', s', s'') |
 
 **Usage Example**:
 
@@ -406,7 +406,7 @@ The Python bindings provide three categories of functions based on input paramet
 from iapws95 import tr2h, tr2s, tr2cp, tr2cv, tr2w
 
 # Direct calculation at T=500°C, ρ=838.025 kg/m³ (recommended approach)
-t = 500.0
+t = 500.0-273.15
 rho = 838.025
 
 h = tr2h(t, rho)      # Enthalpy: kJ/kg
@@ -477,7 +477,7 @@ The C bindings provide three categories of functions based on input parameters:
 
 | Function | Description | Parameters | Returns |
 |------|------|------|------|
-| `iapws95_saturation_properties(t_c, props)` | Calculate all saturation properties at temperature | t: °C, props: struct* | 0 on success, -1 on error |
+| `iapws95_sat_t(t_c, props)` | Calculate all saturation properties at temperature | t: °C, props: struct* | 0 on success, -1 on error |
 | `iapws95_version()` | Get library version string | - | const char* |
 
 **Usage Example**:
@@ -488,7 +488,7 @@ The C bindings provide three categories of functions based on input parameters:
 
 int main() {
     // Direct calculation at T=500°C, ρ=838.025 kg/m³ (recommended approach)
-    double t = 500.0;
+    double t = 500.0-273.15;
     double rho = 838.025;
 
     double p = iapws95_tr2p(t, rho);      // Pressure: MPa

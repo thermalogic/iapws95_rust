@@ -196,23 +196,23 @@ fn solve_phase_equilibrium(t: f64, tau: f64) -> Option<(f64, f64)> {
     Some((delta_l, delta_v))
 }
 
-/// Compute saturation properties at given temperature
-pub fn calc_saturation_properties(t: f64) -> Option<SaturationProperties> {
-    if t < 273.16 || t > IAPWS95_TCRIT {
+/// Compute saturation properties at given temperature T: [K] 
+pub fn calc_saturation_properties(T: f64) -> Option<SaturationProperties> {
+    if T < 273.16 || T > IAPWS95_TCRIT {
         return None;
     }
 
-    let tau = inv_reduced_temp(t);
-    let (delta_l, delta_v) = solve_phase_equilibrium(t, tau)?;
+    let tau = inv_reduced_temp(T);
+    let (delta_l, delta_v) = solve_phase_equilibrium(T, tau)?;
 
     let rho_l = delta_l * IAPWS95_RHOCRIT;
     let rho_v = delta_v * IAPWS95_RHOCRIT;
 
-    let p_sat = calc_pressure(t, rho_l);
-    let h_l = calc_enthalpy(t, rho_l);
-    let h_v = calc_enthalpy(t, rho_v);
-    let s_l = calc_entropy(t, rho_l);
-    let s_v = calc_entropy(t, rho_v);
+    let p_sat = calc_pressure(T, rho_l);
+    let h_l = calc_enthalpy(T, rho_l);
+    let h_v = calc_enthalpy(T, rho_v);
+    let s_l = calc_entropy(T, rho_l);
+    let s_v = calc_entropy(T, rho_v);
 
     Some(SaturationProperties {
         p_sat,
@@ -225,6 +225,12 @@ pub fn calc_saturation_properties(t: f64) -> Option<SaturationProperties> {
     })
 }
 
+/// Compute saturation properties at given temperature t_c,°C 
 pub fn sat_t(t_c: f64) -> Option<SaturationProperties> {
-   return calc_saturation_properties(t_c+273.15); 
+    if t_c < 0.01 || t_c > IAPWS95_TCRIT - 273.15 {
+        return None;
+    }
+
+    let t_k = t_c + 273.15;
+    calc_saturation_properties(t_k)
 }

@@ -115,7 +115,7 @@ typedef struct {
  * @param[out] props Pointer to structure to store results
  * @return 0 on success, -1 on error (temperature out of range)
  */
-int iapws95_saturation_properties(double t_c, iapws95_saturation_props_t *props);
+int iapws95_sat_t(double t_c, iapws95_saturation_props_t *props);
 
 /**
  * @brief Get library version string

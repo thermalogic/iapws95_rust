@@ -28,7 +28,7 @@ int main(void) {
     double t_sat = 100.0;
 
     iapws95_saturation_props_t sat;
-    int ret = iapws95_saturation_properties(t_sat, &sat);
+    int ret = iapws95_sat_t(t_sat, &sat);
 
     if (ret == 0) {
         printf("Input:\n");
@@ -65,7 +65,7 @@ int main(void) {
 
     // Example 5: Direct (T,ρ) → property calculations
     printf("\n--- Example 5: Direct (T,ρ) Property Calculations ---\n");
-    double t_direct = 500.0;
+    double t_direct = 500.0-273.15;
     double rho_direct = 838.025;
 
     double p_calc = iapws95_tr2p(t_direct, rho_direct);
