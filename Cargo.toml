@@ -15,29 +15,9 @@ crate-type = ["cdylib", "rlib"]
 # Dependencies
 # ==========================================================================
 
-[dependencies]
-pyo3 = { version = "0.24", features = ["extension-module"], optional = true }
-
-# ==========================================================================
-# Features
-# ==========================================================================
-
-[features]
-default = []
-
-# Python bindings - enables PyO3-based Python extension module
-python = ["pyo3"]
-
-# C FFI bindings - enables C-compatible interface (always available, no feature flag needed)
-cffi = []
-
-# All optional features - includes both Python and C FFI bindings
-all-bindings = ["python", "cffi"]
-
 # ==========================================================================
 # Development Dependencies
 # ==========================================================================
 
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
-plotters = { version = "0.3", features = ["all_series"] }

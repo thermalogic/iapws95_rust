@@ -1,5 +1,3 @@
 target/
 doc/
 *.lock
-*.exe
-*.dll
