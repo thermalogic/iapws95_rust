@@ -268,8 +268,8 @@ Where:
 
 | Function | Description | Returns |
 |------|------|------|
-| `calc_saturation_properties(T)` | Calculate all saturation properties at temperature T | `Option<SaturationProperties>` |
-| `sat_t(t）` | Calculate all saturation properties at temperature t,°C | `Option<SaturationProperties>` |
+| `calc_saturation_properties(T)` | Calculate all saturation properties at temperature T (K) | `Option<SaturationProperties>` |
+| `sat_t(t_c)` | Calculate all saturation properties at temperature t_c (°C) | `Option<SaturationProperties>` |
 
 **SaturationProperties Structure**:
 
