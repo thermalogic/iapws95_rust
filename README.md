@@ -66,29 +66,29 @@ let w    = tr2w(t_c, rho);        // Speed of sound (m/s)
 
 These convenience functions accept temperature in **Celsius** and provide shorter function names as the primary API:
 
-| Function | Description | Returns |
-|------|------|------|
-| `tr2p(t_c, rho)` | Pressure at T(°C), ρ(kg/m³) | MPa |
-| `tr2u(t_c, rho)` | Internal energy at T(°C), ρ(kg/m³) | kJ/kg |
-| `tr2h(t_c, rho)` | Enthalpy at T(°C), ρ(kg/m³) | kJ/kg |
-| `tr2s(t_c, rho)` | Entropy at T(°C), ρ(kg/m³) | kJ/(kg·K) |
-| `tr2cv(t_c, rho)` | Constant-volume specific heat at T(°C), ρ(kg/m³) | kJ/(kg·K) |
+| Function          | Description                                        | Returns   |
+| ----------------- | -------------------------------------------------- | --------- |
+| `tr2p(t_c, rho)`  | Pressure at T(°C), ρ(kg/m³)                        | MPa       |
+| `tr2u(t_c, rho)`  | Internal energy at T(°C), ρ(kg/m³)                 | kJ/kg     |
+| `tr2h(t_c, rho)`  | Enthalpy at T(°C), ρ(kg/m³)                        | kJ/kg     |
+| `tr2s(t_c, rho)`  | Entropy at T(°C), ρ(kg/m³)                         | kJ/(kg·K) |
+| `tr2cv(t_c, rho)` | Constant-volume specific heat at T(°C), ρ(kg/m³)   | kJ/(kg·K) |
 | `tr2cp(t_c, rho)` | Constant-pressure specific heat at T(°C), ρ(kg/m³) | kJ/(kg·K) |
-| `tr2w(t_c, rho)` | Speed of sound at T(°C), ρ(kg/m³) | m/s |
+| `tr2w(t_c, rho)`  | Speed of sound at T(°C), ρ(kg/m³)                  | m/s       |
 
 ### Main Functions (Temperature in K)
 
 These functions accept temperature in **Kelvin**:
 
-| Function | Description | Returns |
-|------|------|------|
-| `calc_pressure(T, rho)` | Pressure at T(K), ρ(kg/m³) | MPa |
-| `calc_internal_energy(T, rho)` | Internal energy at T(K), ρ(kg/m³) | kJ/kg |
-| `calc_enthalpy(T, rho)` | Enthalpy at T(K), ρ(kg/m³) | kJ/kg |
-| `calc_entropy(T, rho)` | Entropy at T(K), ρ(kg/m³) | kJ/(kg·K) |
-| `calc_cv(T, rho)` | Constant-volume specific heat at T(K), ρ(kg/m³) | kJ/(kg·K) |
-| `calc_cp(T, rho)` | Constant-pressure specific heat at T(K), ρ(kg/m³) | kJ/(kg·K) |
-| `calc_speed_of_sound(T, rho)` | Speed of sound at T(K), ρ(kg/m³) | m/s |
+| Function                       | Description                                       | Returns   |
+| ------------------------------ | ------------------------------------------------- | --------- |
+| `calc_pressure(T, rho)`        | Pressure at T(K), ρ(kg/m³)                        | MPa       |
+| `calc_internal_energy(T, rho)` | Internal energy at T(K), ρ(kg/m³)                 | kJ/kg     |
+| `calc_enthalpy(T, rho)`        | Enthalpy at T(K), ρ(kg/m³)                        | kJ/kg     |
+| `calc_entropy(T, rho)`         | Entropy at T(K), ρ(kg/m³)                         | kJ/(kg·K) |
+| `calc_cv(T, rho)`              | Constant-volume specific heat at T(K), ρ(kg/m³)   | kJ/(kg·K) |
+| `calc_cp(T, rho)`              | Constant-pressure specific heat at T(K), ρ(kg/m³) | kJ/(kg·K) |
+| `calc_speed_of_sound(T, rho)`  | Speed of sound at T(K), ρ(kg/m³)                  | m/s       |
 
 ### Saturation Properties
 
@@ -109,11 +109,26 @@ cargo test                    # Run all tests
 cargo test --test td_test    # Specific test
 ```
 
-| Test | Description |
-|------|------|
-| `td_free_energy.rs` | Helmholtz free energy verification (Table 6) |
-| `td_test.rs` | T-ρ-p equation of state (Table 7) |
-| `T_saturation_table8.rs` | Saturation properties (Table 8) |
+| Test                     | Description                                  |
+| ------------------------ | -------------------------------------------- |
+| `td_free_energy.rs`      | Helmholtz free energy verification (Table 6) |
+| `td_test.rs`             | T-ρ-p equation of state (Table 7)            |
+| `T_saturation_table8.rs` | Saturation properties (Table 8)              |
+
+## Implementation Details
+
+### Helmholtz Free Energy Derivatives
+
+The library implements complete first and second derivatives of the Helmholtz free energy:
+
+- **Ideal gas part (φ°)**: Analytical derivatives for all terms
+- **Residual part (φʳ)**: Full derivative support including:
+  - Polynomial terms (i=1-7)
+  - Exponential terms with c=1,2,3,4,6 (i=8-51)
+  - Gaussian terms (i=52-54)
+  - Non-analytic terms (i=55-56)
+
+All derivative formulas have been verified against reference values from IAPWS-95 Table 6.
 
 ## Dependencies
 
@@ -127,3 +142,5 @@ assert_approx_eq = "1.1.0"
 ## References
 
 1. [IAPWS R6-95(2018)](https://iapws.org/documents/release/IAPWS-95/) - Revised Release on the IAPWS Formulation 1995
+2. Wagner, W. & Pruss, A. (2002). The IAPWS Formulation 1995 for the Thermodynamic Properties of Ordinary Water Substance. J. Phys. Chem. Ref. Data, 31(2), 387-535.
+

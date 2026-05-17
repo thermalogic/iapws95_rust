@@ -374,7 +374,14 @@ Computes ∂φʳ/∂δ using analytical derivatives of each term category. For n
 
 ##### `d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64`
 
-Computes ∂²φʳ/∂δ². Polynomial terms with d < 2 contribute zero to the second derivative.
+Computes ∂²φʳ/∂δ² using analytical second derivatives for each term category:
+
+- **Polynomial terms**: nᵢ·dᵢ·(dᵢ−1)·δ^(dᵢ−2)·τ^tᵢ (terms with d < 2 contribute zero)
+- **Exponential terms (c=1)**: nᵢ·exp(−δ)·δ^(d−2)·τ^t·[(d−δ)(d−1−δ)−δ]
+- **Exponential terms (c=2)**: nᵢ·exp(−δ²)·δ^(d−2)·τ^t·[(d−1−2δ²)(d−2δ²)−4δ²]
+- **Exponential terms (c=3,4,6)**: nᵢ·exp(−δᶜ)·δ^(d−2)·τ^t·[(d−1−c·δᶜ)(d−c·δᶜ)−c²·δᶜ]
+- **Gaussian terms**: Uses product rule with first and second derivative factors
+- **Non-analytic terms**: Full chain rule implementation with Δ(δ,τ) second derivatives
 
 ##### `dphi_residual_dtau(delta: f64, tau: f64) -> f64`
 

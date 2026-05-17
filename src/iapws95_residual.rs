@@ -315,21 +315,22 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
         sum += term.n*exp_term*d_term;
     }
 
-    // Exponential terms (i=23 to i=42): nᵢ exp(-δ²)[δᵈⁱ τᵗⁱ()] , c=2 fn error
+    // Exponential terms (i=23 to i=42): nᵢ exp(-δ²)[δᵈⁱ τᵗⁱ()] , c=2
     let delta_2= delta *delta;
     for term in &RES_EXP_D2_C2 {
         let d = term.d as f64;
         let exp_term: f64 = (-delta_2).exp();
-        let d_term = delta.powi(term.d-2)*tau.powi(term.t)*((d -2.0*delta_2)*(d - 1.0-delta_2)-2.0*delta_2);
+        let d_term = delta.powi(term.d-2)*tau.powi(term.t)*((d - 1.0 - 2.0*delta_2)*(d - 2.0*delta_2) - 4.0*delta_2);
         sum += term.n*exp_term*d_term;
        }
 
-    // Exponential terms (i=43 to i=51): nᵢ  exp(-δᶜⁱ)[δᵈⁱ τᵗⁱ()] c=3,4,6 fn error
+    // Exponential terms (i=43 to i=51): nᵢ  exp(-δᶜⁱ)[δᵈⁱ τᵗⁱ()] c=3,4,6
     for term in &RES_EXP_D2_CN {
         let d = term.d as f64;
+        let c = term.c as f64;
         let delta_c = delta.powi(term.c);
         let exp_term: f64 = (-delta_c).exp();
-        let d_term = delta.powi(term.d-2)*tau.powi(term.t)*((d -2.0*delta_c)*(d - 1.0-delta_c)-2.0*delta_c);
+        let d_term = delta.powi(term.d-2)*tau.powi(term.t)*((d - 1.0 - c*delta_c)*(d - c*delta_c) - c*c*delta_c);
         sum += term.n*exp_term*d_term;      
     }
 
@@ -373,8 +374,8 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
         );
         
         // Compute delta_dd (second derivative of delta_val with respect to delta)
-        let tita_d = term.A * d_1 * 2.0 / term.bt * d_1_2.powf(0.5 / term.bt - 1.0);
-        let tita_dd = term.A * (2.0 / term.bt) * (
+        let tita_d = term.A * d_1 * 1.0 / term.bt * d_1_2.powf(0.5 / term.bt - 1.0);
+        let tita_dd = term.A * (1.0 / term.bt) * (
             d_1_2.powf(0.5 / term.bt - 1.0) 
             + d_1 * (0.5 / term.bt - 1.0) * d_1_2.powf(0.5 / term.bt - 2.0) * 2.0 * d_1
         );
