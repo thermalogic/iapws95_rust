@@ -424,9 +424,10 @@ pub fn dphi_residual_dtau(delta: f64, tau: f64) -> f64 {
     }
 
     // Exponential terms (i=23 to i=42): c=2 ∂(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δ²))/∂τ
+    let delta_2 = delta * delta;
     for term in &RES_EXP_D2_C2 {
         sum += term.n * (term.t as f64) * delta.powi(term.d) * tau.powf((term.t - 1) as f64)
-            * (-delta * delta).exp();
+            * (-delta_2).exp();
     }
 
     // Exponential terms (i=43 to i=51): c=3,4,6 ∂(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δᶜ))/∂τ
@@ -578,15 +579,15 @@ pub fn d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64 {
             * deriv_delta* (-delta).exp()
     }
 
-    // Exponential terms (i=23 to i=42): c=2 ∂²(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δ²))/∂δ∂τ
+    // Exponential terms (i=23 to i=42): c=2 
+    let delta_2 = delta * delta;
     for term in &RES_EXP_D2_C2 {
-        let delta_c = delta * delta;
-        let deriv_delta = (term.d as f64) - 2.0* delta_c;
+        let deriv_delta = (term.d as f64) - 2.0* delta_2;
         sum += term.n * (term.t as f64) * delta.powi(term.d - 1) * tau.powf((term.t - 1) as f64)
-            * deriv_delta * (-delta_c).exp();
+            * deriv_delta * (-delta_2).exp();
     }
 
-    // Exponential terms (i=43 to i=51): ∂²(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δᶜ))/∂δ∂τ
+    // Exponential terms (i=43 to i=51): c=3,4,6
     for term in &RES_EXP_D2_CN {
         let delta_c = delta.powi(term.c);
         let deriv_delta = (term.d as f64) - (term.c as f64)* delta_c;
