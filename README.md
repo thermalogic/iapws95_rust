@@ -64,15 +64,6 @@ Legend: 🔜 = Near term, 🔮 = Future consideration
 - Rust toolchain (edition 2021)
 - Cargo build system
 
-**For Python bindings**:
-- Python 3.8+
-- maturin >= 1.0
-- pip package manager
-
-**For C/C++ bindings**:
-- C compiler (gcc, clang, or MSVC)
-- Rust toolchain for building the library
-
 ### Installation and Build
 
 #### Building the Rust Library
@@ -94,33 +85,6 @@ cargo test
 cargo doc --open
 ```
 
-#### Building Python Bindings
-
-```bash
-# Create and activate virtual environment (recommended)
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Build and install the package
-maturin develop --features python
-
-# Or build wheel package for distribution
-maturin build --features python
-pip install target/wheels/iapws95-*.whl
-```
-
-#### Building C/C++ Bindings
-
-```bash
-# Build release version (produces shared library)
-cargo build --release
-
-# The library will be available at:
-# Linux:   target/release/libiapws95.so
-# Windows: target/release/iapws95.dll + iapws95.lib
-# macOS:   target/release/libiapws95.dylib
-```
-
 ### Usage Example
 
 #### Rust
@@ -138,55 +102,19 @@ let w = calc_speed_of_sound(T, rho);
 let s = calc_entropy(T, rho);
 ```
 
-#### Python (Direct Computation)
-
-```python
-from iapws95 import tr2h, tr2s, tr2cp
-
-# Calculate properties at T=500°C, ρ=838.025 kg/m³
-t = 500.0
-rho = 838.025
-
-h = tr2h(t, rho)      # Enthalpy: kJ/kg
-s = tr2s(t, rho)      # Entropy: kJ/(kg·K)
-cp = tr2cp(t, rho)    # Cp: kJ/(kg·K)
-```
-
-#### C/C++ (Direct Computation)
-
-```c
-#include "iapws95.h"
-
-// Calculate properties at T=500°C, ρ=838.025 kg/m³
-double t = 500.0;
-double rho = 838.025;
-
-double h = iapws95_tr2h(t, rho);    // Enthalpy: kJ/kg
-double s = iapws95_tr2s(t, rho);    // Entropy: kJ/(kg·K)
-double cp = iapws95_tr2cp(t, rho);  // Cp: kJ/(kg·K)
-```
-
 ## Project Structure
 
 ```
 iapws95_rust/
-├── Cargo.toml              # Project configuration (includes pyo3 for Python bindings)
-├── pyproject.toml          # maturin build configuration for Python package
+├── Cargo.toml              # Project configuration
 ├── src/
 │   ├── lib.rs                    # Library entry point, exports all public modules
-│   ├── iapws95.h                 # C FFI header file
 │   ├── iapws95.rs                # Main module: reference constants, data structures, API functions
 │   ├── iapws95_ideal.rs          # Ideal gas part implementation (φ°)
 │   ├── iapws95_residual.rs       # Residual part implementation (φʳ)
 │   ├── iapws95_saturation.rs     # Saturation properties calculation module
-│   ├── py_iapws95.rs             # Python bindings via PyO3
-│   └── c_iapws95.rs              # C FFI bindings
 ├── examples/
 │   └── basic_usage.rs            # Example: single-phase and saturation properties
-├── demo/
-│   ├── iapws95_usage.py          # Python example: Basic property calculation
-│   ├── c_example.c               # C example: Using C FFI bindings
-│   └── Makefile                  # Build script for C examples
 └── tests/
     ├── td_free_energy.rs         # Helmholtz free energy calculation verification test
     ├── td_test.rs                # T-ρ-p equation of state test (Table 7)
@@ -363,171 +291,6 @@ Where:
 
 ---
 
-#### `py_iapws95` - Python Bindings Module
-
-Provides Python bindings via PyO3, enabling thermodynamic property calculations from Python code. This module is compiled as a native extension using maturin.
-
-**Building and Installation**:
-
-```bash
-# Build and install to current virtual environment
-maturin develop --features python
-
-# Or build wheel package
-maturin build --features python
-pip install target/wheels/iapws95-*.whl
-```
-
-**Function Categories**:
-
-The Python bindings provide three categories of functions based on input parameters:
-
-**(t,ρ) → Property Calculations (Direct Computation)**:
-
-| Function | Description | Parameters | Returns |
-|------|------|------|------|
-| `tr2p(t_c, rho)` | Calculate pressure at given temperature and density | t: °C, ρ: kg/m³ | p: MPa |
-| `tr2u(t_c, rho)` | Calculate internal energy at given temperature and density | t: °C, ρ: kg/m³ | u: kJ/kg |
-| `tr2h(t_c, rho)` | Calculate enthalpy at given temperature and density | t: °C, ρ: kg/m³ | h: kJ/kg |
-| `tr2s(t_c, rho)` | Calculate entropy at given temperature and density | t: °C, ρ: kg/m³ | s: kJ/(kg·K) |
-| `tr2cv(t_c, rho)` | Calculate constant-volume specific heat at given T and ρ | t: °C, ρ: kg/m³ | cv: kJ/(kg·K) |
-| `tr2cp(t_c, rho)` | Calculate constant-pressure specific heat at given T and ρ | t: °C, ρ: kg/m³ | cp: kJ/(kg·K) |
-| `tr2w(t_c, rho)` | Calculate speed of sound at given temperature and density | t: °C, ρ: kg/m³ | w: m/s |
-
-**Saturation Properties**:
-
-| Function | Description | Parameters | Returns |
-|------|------|------|------|
-| `sat_t(t)` | Calculate all saturation properties at temperature | t: °C | (p_sat, ρ', ρ'', h', h'', s', s'') |
-
-**Usage Example**:
-
-```python
-from iapws95 import tr2h, tr2s, tr2cp, tr2cv, tr2w
-
-# Direct calculation at T=500°C, ρ=838.025 kg/m³ (recommended approach)
-t = 500.0-273.15
-rho = 838.025
-
-h = tr2h(t, rho)      # Enthalpy: kJ/kg
-s = tr2s(t, rho)      # Entropy: kJ/(kg·K)
-cp = tr2cp(t, rho)    # Cp: kJ/(kg·K)
-cv = tr2cv(t, rho)    # Cv: kJ/(kg·K)
-w = tr2w(t, rho)      # Speed of sound: m/s
-
-# Saturation properties at T=100°C
-p_sat, rho_l, rho_v, h_l, h_v, s_l, s_v = saturation_properties(100.0)
-```
-
-**Dependencies**:
-
-Python bindings require:
-- Python 3.8+
-- matplotlib (for plotting examples)
-- numpy (for plotting examples)
-
----
-
-#### `c_iapws95` - C Language Bindings Module
-
-Provides a C-compatible interface via FFI, enabling thermodynamic property calculations from C/C++ code. The library is compiled as a shared/static library.
-
-**Calling Convention**:
-
-All exported functions use the standard **cdecl (C declaration)** calling convention:
-- Parameters are passed on the stack from right to left
-- The caller is responsible for cleaning up the stack after the call
-- Compatible with all major C/C++ compilers and platforms
-- No special compiler directives or pragmas required when linking
-
-This ensures maximum portability across:
-- **Windows**: MSVC, MinGW-w64, Cygwin
-- **Linux**: gcc, clang
-- **macOS**: clang (Xcode)
-
-**Building the Library**:
-
-```bash
-# Build release version (produces .so/.dll/.dylib)
-cargo build --release
-```
-
-This produces:
-- **Linux**: `target/release/libiapws95.so`
-- **Windows**: `target/release/iapws95.dll` + `target/release/iapws95.lib`
-- **macOS**: `target/release/libiapws95.dylib`
-
-**Function Categories**:
-
-The C bindings provide three categories of functions based on input parameters:
-
-**(t,ρ) → Property Calculations (Direct Computation)**:
-
-| Function | Description | Parameters | Returns |
-|------|------|------|------|
-| `iapws95_tr2p(t_c, rho)` | Calculate pressure at given temperature and density | t: °C, ρ: kg/m³ | p: MPa |
-| `iapws95_tr2u(t_c, rho)` | Calculate internal energy at given T and ρ | t: °C, ρ: kg/m³ | u: kJ/kg |
-| `iapws95_tr2h(t_c, rho)` | Calculate enthalpy at given temperature and density | t: °C, ρ: kg/m³ | h: kJ/kg |
-| `iapws95_tr2s(t_c, rho)` | Calculate entropy at given T and ρ | t: °C, ρ: kg/m³ | s: kJ/(kg·K) |
-| `iapws95_tr2cv(t_c, rho)` | Calculate Cv at given temperature and density | t: °C, ρ: kg/m³ | cv: kJ/(kg·K) |
-| `iapws95_tr2cp(t_c, rho)` | Calculate Cp at given T and ρ | t: °C, ρ: kg/m³ | cp: kJ/(kg·K) |
-| `iapws95_tr2w(t_c, rho)` | Calculate speed of sound at given T and ρ | t: °C, ρ: kg/m³ | w: m/s |
-
-**Saturation Properties**:
-
-| Function | Description | Parameters | Returns |
-|------|------|------|------|
-| `iapws95_sat_t(t_c, props)` | Calculate all saturation properties at temperature | t: °C, props: struct* | 0 on success, -1 on error |
-| `iapws95_version()` | Get library version string | - | const char* |
-
-**Usage Example**:
-
-```c
-#include <stdio.h>
-#include "iapws95.h"
-
-int main() {
-    // Direct calculation at T=500°C, ρ=838.025 kg/m³ (recommended approach)
-    double t = 500.0-273.15;
-    double rho = 838.025;
-
-    double p = iapws95_tr2p(t, rho);      // Pressure: MPa
-    double u = iapws95_tr2u(t, rho);      // Internal energy: kJ/kg
-    double h = iapws95_tr2h(t, rho);      // Enthalpy: kJ/kg
-    double s = iapws95_tr2s(t, rho);      // Entropy: kJ/(kg·K)
-    double cv = iapws95_tr2cv(t, rho);    // Cv: kJ/(kg·K)
-    double cp = iapws95_tr2cp(t, rho);    // Cp: kJ/(kg·K)
-    double w = iapws95_tr2w(t, rho);      // Speed of sound: m/s
-
-    printf("Pressure: %.6f MPa\n", p);
-    printf("Enthalpy: %.4f kJ/kg\n", h);
-    printf("Entropy: %.6f kJ/(kg·K)\n", s);
-
-    // Saturation properties at T=100°C
-    iapws95_saturation_props_t sat;
-    if (iapws95_saturation_properties(100.0, &sat) == 0) {
-        printf("Saturation pressure: %.6f MPa\n", sat.p_sat);
-    }
-    return 0;
-}
-```
-
-**Compilation**:
-
-Linux/Mac:
-```bash
-gcc -I../src c_example.c -L../target/release -liapws95 -o iapws95_demo
-```
-
-Windows (MSVC):
-```cmd
-cl /I..\src c_example.c ..\target\release\iapws95.lib
-```
-
-**Dependencies**:
-- C compiler (gcc, clang, or MSVC)
-- No additional runtime dependencies
-
 ## Algorithm Description
 
 ### Helmholtz Free Energy Formula
@@ -576,55 +339,7 @@ According to the IAPWS-95 official documentation, the formulation provides the f
 ```bash
 # Run the basic usage example
 cargo run --example basic_usage
-
-# Generate Mollier (H-S) diagram using plotters
-cargo run --example mollier_diagram
 ```
-
-The `mollier_diagram` example generates a high-quality H-S diagram with:
-- **Isotherm lines**: 0°C to 800°C (green curves)
-- **Isobar lines**: 611.657 μPa to 100 MPa (blue curves)
-- **Saturation dome**: x=0 (saturated liquid) and x=1 (saturated vapor) in red
-- **Isoquality lines**: x=0.1 to 0.9 (red dashed curves)
-
-Output: `mollier_diagram.png` (1200×900 pixels)
-
-### Running Python Examples
-
-```bash
-# Build and install the Python package
-maturin develop --features python
-
-# Run basic usage example
-python demo/iapws95_usage.py
-
-```
-
-The Python examples demonstrate:
-- **Basic property calculation**: Calculate enthalpy and entropy at given (p, T) conditions using `iapws95_usage.py`
-
-### Running C Examples
-
-```bash
-# Build the Rust library first
-cargo build --release
-
-# Compile and run the example (Linux/Mac)
-cd demo
-gcc -I../src c_example.c -L../target/release -liapws95 -o iapws95_demo
-./iapws95_demo
-
-# Or use Makefile
-make build
-make run
-```
-
-The C example demonstrates:
-- **Saturation properties**: Get all saturation properties at a given temperature
-- **Multi-temperature table**: Generate a saturation properties table from triple point to critical point
-- **Direct (t,ρ) calculations**: Compute pressure, internal energy, enthalpy, entropy, specific heats, and speed of sound directly without numerical inversion
-
-**Note**: The C example includes comprehensive demonstrations of all function categories, including the recommended `(T,ρ)` → property direct computation functions.
 
 ## Testing
 
@@ -735,52 +450,6 @@ This ensures:
 - Maximum cross-platform compatibility
 - Zero dependency tree to manage
 
-### Python Bindings Dependencies
-
-For building Python bindings (optional feature):
-
-**Build-time**:
-```toml
-[dependencies]
-pyo3 = { version = "0.24", features = ["extension-module"], optional = true }
-
-[features]
-python = ["pyo3"]
-cffi = []  # C FFI bindings
-all-bindings = ["python", "cffi"]  # Enable all bindings
-```
-
-Build with: `cargo build --features python` or `maturin develop --features python`
-
-**Runtime**:
-- Python 3.8+
-- matplotlib >= 3.0 (for plotting examples)
-- numpy >= 1.20 (for plotting examples)
-
-Install Python dependencies via pip:
-```bash
-pip install matplotlib numpy
-```
-
-### C/C++ Bindings Dependencies
-
-For building C/C++ bindings:
-- **Build-time**: Rust toolchain with `cargo build --release`
-- **Runtime**: No additional dependencies required
-- **Compiler**: gcc, clang, or MSVC (for compiling example code)
-
-The shared library (`libiapws95.so`, `iapws95.dll`, or `libiapws95.dylib`) is self-contained and requires no external libraries.
-
-### Build Tools
-
-Required build tools:
-- **maturin >= 1.0**: For building Python packages from Rust code
-- **Cargo**: Rust's package manager and build system (included with Rust toolchain)
-
-Optional tools:
-- **pip**: Python package installer (for installing dependencies)
-- **gcc/clang/MSVC**: C/C++ compilers (for compiling example code)
-
 ### Development Dependencies
 
 Testing and development use the following dev-dependencies:
@@ -788,39 +457,7 @@ Testing and development use the following dev-dependencies:
 ```toml
 [dev-dependencies]
 assert_approx_eq = "1.1.0"  # Floating-point approximate comparison macros
-plotters = { version = "0.3", features = ["all_series"] }  # For H-S diagram generation in examples
 ```
-
-## Features
-
-The library provides optional features for different binding types:
-
-| Feature | Description | Dependencies | Use Case |
-|------|------|------|------|
-| `python` | Enable Python bindings via PyO3 | pyo3 >= 0.24 | Building Python extension modules |
-| `cffi` | Enable C FFI bindings | None (always available) | Building C/C++ shared libraries |
-| `all-bindings` | Enable all optional bindings | pyo3 + cffi | Full multi-language support |
-
-**Usage Examples**:
-
-```bash
-# Build with Python bindings only
-cargo build --features python
-
-# Build with C FFI bindings only (default for non-test builds)
-cargo build --features cffi
-
-# Build with all bindings
-cargo build --features all-bindings
-
-# Build Python package with maturin
-maturin develop --features python
-```
-
-**Default Behavior**:
-- Core library: Always available, no features required
-- C FFI bindings: Enabled by default in non-test builds (for backward compatibility)
-- Python bindings: Must be explicitly enabled with `--features python`
 
 ## License
 
