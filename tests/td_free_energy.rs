@@ -31,18 +31,18 @@ fn test_phi_o_r() {
     let tau = inv_reduced_temp(t_test);
 
     // Test ideal gas part
-    assert_approx_eq!(phi_o_ref, phi_ideal(delta, tau), 1.0e-6f64);
-    assert_approx_eq!(phi_o_d_ref, dphi_ideal_ddelta(delta), 1.0e-6f64);
-    assert_approx_eq!(phi_o_dd_ref, d2phi_ideal_ddelta2(delta), 1.0e-6f64);
-    assert_approx_eq!(phi_o_t_ref, dphi_ideal_dtau(tau), 1.0e-6f64);
-    assert_approx_eq!(phi_o_tt_ref, d2phi_ideal_dtau2(tau), 1.0e-6f64);
-    assert_approx_eq!(phi_o_dt_ref, d2phi_ideal_dtaudelta(delta, tau), 1.0e-6f64);
+    assert_approx_eq!(phi_o_ref, phi_ideal(delta, tau), 1.0e-8f64);
+    assert_approx_eq!(phi_o_d_ref, dphi_ideal_ddelta(delta), 1.0e-8f64);
+    assert_approx_eq!(phi_o_dd_ref, d2phi_ideal_ddelta2(delta), 1.0e-8f64);
+    assert_approx_eq!(phi_o_t_ref, dphi_ideal_dtau(tau), 1.0e-8f64);
+    assert_approx_eq!(phi_o_tt_ref, d2phi_ideal_dtau2(tau), 1.0e-8f64);
+    assert_approx_eq!(phi_o_dt_ref, d2phi_ideal_dtaudelta(delta, tau), 1.0e-8f64);
 
     // Test residual part
-    assert_approx_eq!(phi_r_ref, phi_residual(delta, tau), 1.0e-6f64);
-    assert_approx_eq!(phi_r_d_ref, dphi_residual_ddelta(delta, tau), 1.0e-6f64);
-    assert_approx_eq!(phi_r_dd_ref, d2phi_residual_ddelta2(delta, tau), 1.0e-6f64);
-    assert_approx_eq!(phi_r_t_ref, dphi_residual_dtau(delta, tau), 1.0e-6f64);
-    assert_approx_eq!(phi_r_tt_ref, d2phi_residual_dtau2(delta, tau), 1.0e-6f64);
-    assert_approx_eq!(phi_r_dt_ref, d2phi_residual_ddelta_dtau(delta, tau), 1.0e-6f64);
+    assert_approx_eq!(phi_r_ref, phi_residual(delta, tau), 1.0e-8f64);
+    assert_approx_eq!(phi_r_d_ref, dphi_residual_ddelta(delta, tau), 1.0e-8f64);
+    assert_approx_eq!(phi_r_dd_ref, d2phi_residual_ddelta2(delta, tau), 1.0e-8f64);
+    assert_approx_eq!(phi_r_t_ref, dphi_residual_dtau(delta, tau), 1.0e-8f64);
+    assert_approx_eq!(phi_r_tt_ref, d2phi_residual_dtau2(delta, tau), 1.0e-8f64);
+    assert_approx_eq!(phi_r_dt_ref, d2phi_residual_ddelta_dtau(delta, tau), 1.0e-8f64);
 }
