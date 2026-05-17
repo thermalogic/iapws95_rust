@@ -5,9 +5,26 @@
 //!
 //! # Formula
 //!
+//! The ideal gas part of the dimensionless Helmholtz free energy φ°(δ,τ) is given by:
+//!
 //! ```text
-//! φ°(δ,τ) = ln(δ) + n₁ + n₂τ + n₃ln(τ) + Σᵢ₌₄⁸ nᵢ·ln[1 - exp(-γᵢτ)]
+//! φ°(δ,τ) = ln(δ) + n₁° + n₂°τ + n₃°ln(τ) + Σᵢ₌₄⁸ nᵢ°·ln[1 - exp(-γᵢ°τ)]
 //! ```
+//!
+//! where:
+//! - δ = ρ/ρc is the reduced density (dimensionless)
+//! - τ = Tc/T is the inverse reduced temperature (dimensionless)
+//! - nᵢ° and γᵢ° are coefficients from IAPWS-95 Tables 1 and 4
+//!
+//! # Derivatives
+//!
+//! The following derivatives are implemented:
+//!
+//! - First derivative with respect to δ: ∂φ°/∂δ = 1/δ
+//! - Second derivative with respect to δ: ∂²φ°/∂δ² = -1/δ²
+//! - First derivative with respect to τ: ∂φ°/∂τ = n₂° + n₃°/τ + Σᵢ₌₄⁸ nᵢ°γᵢ°·[(1/[1-exp(-γᵢ°τ)]) - 1]
+//! - Second derivative with respect to τ: ∂²φ°/∂τ² = -n₃°/τ² - Σᵢ₌₄⁸ nᵢ°(γᵢ°)²·exp(-γᵢ°τ) / [1-exp(-γᵢ°τ)]²
+//! - Mixed derivative: ∂²φ°/∂τ∂δ = 0 (ideal gas has no δ-τ coupling)
 
 // ==========================================================================
 // COEFFICIENTS - Ideal Gas Part (Table 1 of IAPWS-95)

@@ -4,9 +4,34 @@
 //! 1. Use IAPWS SR1-86 (1992) explicit equations for initial guesses
 //! 2. Refine using Newton's method to solve IAPWS-95 phase equilibrium conditions
 //!
-//! Phase equilibrium conditions:
+//! # Phase Equilibrium Conditions
+//!
+//! At saturation, the liquid and vapor phases must satisfy:
 //! - Equal pressure: p(δ', τ) = p(δ'', τ)
 //! - Equal chemical potential: μ(δ', τ) = μ(δ'', τ)
+//!
+//! where:
+//! - δ' = ρ'/ρc is the reduced liquid density (dimensionless)
+//! - δ'' = ρ''/ρc is the reduced vapor density (dimensionless)
+//! - τ = Tc/T is the inverse reduced temperature (dimensionless)
+//!
+//! # Dimensionless Terms
+//!
+//! The phase equilibrium is solved using dimensionless terms:
+//! - Pressure term: J(δ,τ) = δ·(1 + δ·∂φʳ/∂δ)
+//! - Chemical potential term: K(δ,τ) = δ·∂φʳ/∂δ + φʳ + ln(δ)
+//!
+//! where φʳ(δ,τ) is the residual part of the dimensionless Helmholtz free energy.
+//!
+//! # Newton's Method
+//!
+//! The system of equations is solved iteratively:
+//! - F₁(δL, δV) = K(δV, τ) - K(δL, τ) = 0
+//! - F₂(δL, δV) = J(δV, τ) - J(δL, τ) = 0
+//!
+//! The Jacobian matrix elements are:
+//! - J₁₁ = -∂K/∂δ|_L, J₁₂ = ∂K/∂δ|_V
+//! - J₂₁ = -∂J/∂δ|_L, J₂₂ = ∂J/∂δ|_V
 //!
 //! This approach combines the robustness of SR1-86 initial estimates with
 //! the accuracy of IAPWS-95.
