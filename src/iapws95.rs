@@ -54,7 +54,8 @@ pub fn inv_reduced_temp(T: f64) -> f64 {
 /// Compute pressure: p = RT*delta*(1 + delta*ddelta) [MPa]
 pub fn calc_pressure(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
-    let dphi_r_ddelta = dphi_residual_ddelta(delta, inv_reduced_temp(T));
+    let tau = inv_reduced_temp(T);
+    let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
     IAPWS95_R * T * delta * (1.0 + delta * dphi_r_ddelta)
 }
 
