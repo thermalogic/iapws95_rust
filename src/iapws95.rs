@@ -14,6 +14,9 @@ pub const IAPWS95_TCRIT: f64 = 647.096;
 /// Critical density: rho_c = 322 kg/m³
 pub const IAPWS95_RHOCRIT: f64 = 322.0;
 
+/// Critical pressure: pc = 22.064 MPa
+pub const IAPWS95_PCRIT: f64 = 22.064;
+
 /// Specific gas constant: R = 0.46151805 kJ/(kg·K)
 pub const IAPWS95_R: f64 = 0.46151805;
 

@@ -35,6 +35,11 @@ This project is a Rust implementation of the [IAPWS-95](https://iapws.org/readme
 | | Internal energy (u) | ✅ Implemented |
 | | Enthalpy (h) | ✅ Implemented |
 | | Constant-pressure specific heat (cp) | ✅ Implemented |
+| **Saturation** | Saturation properties module | 🚧 In development |
+| | Saturation pressure pₛ(T) | 🚧 In development |
+| | Saturation densities ρ'(T), ρ''(T) | 🚧 In development |
+| | Saturation enthalpy h'(T), h''(T) | 🚧 In development |
+| | Saturation entropy s'(T), s''(T) | 🚧 In development |
 | **Testing** | Helmholtz free energy verification | ✅ Complete |
 | | T-ρ-p property verification (11 test points) | ✅ Complete |
 
@@ -46,9 +51,6 @@ This project is a Rust implementation of the [IAPWS-95](https://iapws.org/readme
 | | Joule-Thomson coefficient | 🔜 |
 | | Thermal expansion coefficient | 🔜 |
 | | Isothermal compressibility | 🔜 |
-| **Saturation** | Saturation pressure pₛ(T) | 🔜 |
-| | Saturation densities ρ'(T), ρ''(T) | 🔜 |
-| | Saturation properties | 🔜 |
 | **Two-Phase** | Quality calculation | 🔜 |
 | | Two-phase region properties | 🔜 |
 | **Performance** | SIMD optimization | 🔮 |
@@ -105,10 +107,12 @@ rust/
 │   ├── lib.rs              # Library entry point, exports all public modules
 │   ├── iapws95.rs          # Main module: reference constants, data structures, API functions
 │   ├── iapws95_ideal.rs    # Ideal gas part implementation (φ°)
-│   └── iapws95_residual.rs # Residual part implementation (φʳ)
+│   ├── iapws95_residual.rs # Residual part implementation (φʳ)
+│   └── iapws95_saturation.rs # Saturation properties calculation module
 └── tests/
     ├── td_free_energy.rs   # Helmholtz free energy calculation verification test
-    └── td_test.rs          # T-d-p equation of state test
+    ├── td_test.rs          # T-d-p equation of state test
+    └── T_saturation_table8.rs # Saturation properties verification (Table 8)
 ```
 
 ### Module Description
