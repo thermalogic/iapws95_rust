@@ -524,54 +524,61 @@ pub fn d2phi_residual_dtau2(delta: f64, tau: f64) -> f64 {
         let exp_term = exp_arg.exp();
         let t = term.t as f64;
         let b = term.b as f64;
-        let g = term.g;
 
         // Second derivative of τᵗ * exp[-β(τ-γ)²]
-        let d2_tau_exp =
-            (t * (t - 1.0) / (tau * tau)
-                - 2.0 * b * (t / tau * (tau - g) + b * (tau - g) * (tau - g) - b))
-                * exp_term;
+        // Let g(τ) = τᵗ * exp[-β(τ-γ)²]
+        // g'(τ) = τᵗ * exp[-β(τ-γ)²] * (t/τ - 2β(τ-γ))
+        // g''(τ) = τᵗ * exp[-β(τ-γ)²] * [(t/τ - 2β(τ-γ))² + (-t/τ² - 2β)]
+        let factor = t / tau - 2.0 * b * t_g;
+        let d2_factor = -t / (tau * tau) - 2.0 * b;
+        let d2_tau_exp = tau.powf(t) * exp_term * (factor * factor + d2_factor);
 
-        sum += term.n * delta.powi(term.d) * tau.powf(t as f64) * d2_tau_exp;   
+        sum += term.n * delta.powi(term.d) * d2_tau_exp;
     }
 
     // Non-analytic terms: second derivative with respect to tau
-    // Temporarily commented out due to complex implementation near critical point
-    // for term in &RES_NON_ANAL {
-    //     let d_1 = delta - 1.0;
-    //     let d_1_2 = d_1 * d_1;
-    //     let tita = (1.0 - tau) + term.A * d_1_2.powf(0.5 / term.bt);
-    //     let f_val = (-term.C as f64 * d_1_2 - term.D as f64 * (tau - 1.0).powi(2)).exp();
-    //     
-    //     let f_t = -2.0 * term.D as f64 * f_val * (tau - 1.0);
-    //     let f_tt = -2.0 * term.D as f64 * (f_val + (tau - 1.0) * f_t);
-    //
-    //     let tita2 = tita * tita;
-    //     let delta_val = tita2 + term.B * d_1_2.powf(term.a);
-    //     
-    //     let delta_t = -2.0 * tita; // derivative of delta_val with respect to tau
-    //     let delta_tt = 2.0; // second derivative of delta_val with respect to tau
-    //
-    //     let (delta_b, delta_bt, delta_btt) = if delta_val == 0.0 {
-    //         (0.0, 0.0, 0.0)
-    //     } else {
-    //         let db = delta_val.powf(term.b);
-    //         let dbt = term.b * delta_val.powf(term.b - 1.0) * delta_t;
-    //         let dbtt = term.b * (
-    //             (term.b - 1.0) * delta_val.powf(term.b - 2.0) * delta_t * delta_t
-    //             + delta_val.powf(term.b - 1.0) * delta_tt
-    //         );
-    //         (db, dbt, dbtt)
-    //     };
-    //
-    //     // Now compute second derivative of the term nᵢ * (Δ^bᵢ * δ * F)
-    //     let term_tt = term.n * (
-    //         delta_btt * delta * f_val
-    //         + 2.0 * delta_bt * delta * f_t
-    //         + delta_b * delta * f_tt
-    //     );
-    //     sum += term_tt;
-    // }
+    // φʳ_nonanal = nᵢ * Δᵇⁱ * δ * F(δ,τ)
+    // where Δ = θ² + B*(δ-1)²ᵃ, θ = (1-τ) + A*(δ-1)²ᵇᵗ, F = exp[-C*(δ-1)² - D*(τ-1)²]
+    for term in &RES_NON_ANAL {
+        let d_1 = delta - 1.0;
+        let d_1_2 = d_1 * d_1;
+        let tita = (1.0 - tau) + term.A * d_1_2.powf(0.5 / term.bt);
+        let f_val = (-term.C as f64 * d_1_2 - term.D as f64 * (tau - 1.0).powi(2)).exp();
+        
+        // First and second derivatives of F with respect to τ
+        let f_t = -2.0 * term.D as f64 * f_val * (tau - 1.0);
+        let f_tt = -2.0 * term.D as f64 * (f_val - 2.0 * term.D as f64 * f_val * (tau - 1.0) * (tau - 1.0));
+    
+        let tita2 = tita * tita;
+        let delta_val = tita2 + term.B * d_1_2.powf(term.a);
+        
+        // First and second derivatives of Δ with respect to τ
+        // ∂Δ/∂τ = 2*θ*∂θ/∂τ = 2*θ*(-1) = -2*θ
+        let delta_t = -2.0 * tita;
+        // ∂²Δ/∂τ² = 2*(∂θ/∂τ)² + 2*θ*∂²θ/∂τ² = 2*(-1)² + 0 = 2
+        let delta_tt = 2.0;
+    
+        let (delta_b, delta_bt, delta_btt) = if delta_val == 0.0 {
+            (0.0, 0.0, 0.0)
+        } else {
+            let db = delta_val.powf(term.b);
+            let dbt = term.b * delta_val.powf(term.b - 1.0) * delta_t;
+            let dbtt = term.b * (
+                (term.b - 1.0) * delta_val.powf(term.b - 2.0) * delta_t * delta_t
+                + delta_val.powf(term.b - 1.0) * delta_tt
+            );
+            (db, dbt, dbtt)
+        };
+    
+        // Second derivative of the term nᵢ * (Δᵇⁱ * δ * F)
+        // ∂²/∂τ²(Δᵇ * δ * F) = δ * [Δᵇᵗᵗ * F + 2*Δᵇᵗ * Fᵗ + Δᵇ * Fᵗᵗ]
+        let term_tt = term.n * delta * (
+            delta_btt * f_val
+            + 2.0 * delta_bt * f_t
+            + delta_b * f_tt
+        );
+        sum += term_tt;
+    }
 
     sum
 }

@@ -34,12 +34,12 @@ fn test_td() {
     for i in 0..11 {
         let T: f64 = Td_data[i].T;
         let d: f64 = Td_data[i].d;
-        
-        let delta = reduced_density(d);
-        let tau = inv_reduced_temp(T);
-        
         // Test pressure
         assert_approx_eq!(Td_data[i].p, calc_pressure(T, d), 1.0e-6f64);
-        //assert_approx_eq!(Td_data[i].s, calc_entropy(T, d), 1.0e-6f64);
+        // Test entropy
+        assert_approx_eq!(Td_data[i].s, calc_entropy(T, d), 1.0e-6f64);
+        assert_approx_eq!(Td_data[i].cv, calc_cv(T, d), 1.0e-6f64);
+        assert_approx_eq!(Td_data[i].w, calc_speed_of_sound(T, d), 1.0e-6f64);
+        
     }
 }

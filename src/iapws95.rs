@@ -71,7 +71,7 @@ pub fn calc_internal_energy(T: f64, rho: f64) -> f64 {
     IAPWS95_R * T * tau * (phi_o + phi_r + tau * dphi_dtau)
 }
 
-/// Compute specific entropy: s = R*(phi_o + phi_r - tau*dphi/dtau) [kJ/(kg*K)]
+/// Compute specific entropy: s = R*(tau*dphi/dtau - phi_o - phi_r) [kJ/(kg*K)]
 pub fn calc_entropy(T: f64, rho:f64) -> f64{
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -80,7 +80,7 @@ pub fn calc_entropy(T: f64, rho:f64) -> f64{
     let phi_o_t = dphi_ideal_dtau(tau);
     let phi_r_t = dphi_residual_dtau(delta, tau);
     let dphi_dtau = phi_o_t + phi_r_t;
-    IAPWS95_R * (phi_o + phi_r - dphi_dtau)
+    IAPWS95_R * (tau * dphi_dtau - phi_o - phi_r)
 }
 
 /// Compute specific enthalpy: h = u + p/rho [kJ/kg]
@@ -88,27 +88,33 @@ pub fn calc_enthalpy(_T: f64, rho: f64, p: f64, u: f64) -> f64 {
     u + p / rho * 1000.0 // p in MPa, rho in kg/m3: p/rho*1000 converts to kJ/kg
 }
 
-/// Compute isochoric heat capacity: cv = R*(-tau^2*d2phi/dtau2) [kJ/(kg*K)]
-pub fn calc_cv(T: f64, d2phi_dtau2: f64) -> f64 {
-    IAPWS95_R * (-T * T * d2phi_dtau2)
+/// Compute isochoric heat capacity: cv = R*(-tau^2*(d2phi_o_tau2+d2phi_r_tau2) [kJ/(kg*K)]
+pub fn calc_cv(T: f64, rho: f64) -> f64 {
+    let tau = inv_reduced_temp(T);
+    let delta = reduced_density(rho);
+    let phi_o_tt=d2phi_ideal_dtau2(tau);
+    let phi_r_tt=d2phi_residual_dtau2(delta,tau);
+    IAPWS95_R * (-tau*tau *(phi_o_tt+phi_r_tt))
 }
 
 /// Compute isobaric heat capacity: cp = cv + R*(dp/dT)_rho^2 / (dp/drho)_T [kJ/(kg*K)]
-pub fn calc_cp(T: f64, rho: f64, dphi_ddelta: f64, d2phi_ddelta2: f64) -> f64 {
+pub fn calc_cp(T: f64, rho: f64) -> f64 {
+    let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
-
+    let dphi_ddelta: f64=dphi_residual_ddelta(delta, tau);
+    let d2phi_ddelta2: f64=d2phi_residual_dtau2(delta, tau);
     // Partial derivatives needed for cp calculation
     let dpdT = IAPWS95_R * (1.0 + dphi_ddelta); // (dp/dT)_rho in MPa/K
     let dpdrho = IAPWS95_R * T * delta / rho * (3.0 + d2phi_ddelta2); // (dp/drho)_T in MPa/(kg/m3)
-
     let cv_val = calc_cv(T, -1.0); // Placeholder - would need actual d2phi/dtau2
-
     cv_val + IAPWS95_R * dpdT * dpdT / dpdrho
 }
 
 /// Compute speed of sound: w [m/s]
-pub fn calc_speed_of_sound(_rho: f64, T: f64, cp: f64, cv: f64) -> f64 {
+pub fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
     // Simplified formula using heat capacity ratio and basic compressibility
+    let cv=calc_cv(T, rho);
+    let cp=calc_cp(T, rho);
     (cp / cv * IAPWS95_R * T * 1000.0).sqrt()
 }
 
