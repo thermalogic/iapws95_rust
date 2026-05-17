@@ -573,28 +573,25 @@ pub fn d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64 {
 
     // Exponential terms (i=8 to i=22): c=1 ∂²(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δ))/∂δ∂τ
     for term in &RES_EXP_D2_C1 {
-        let c = 1;
-        let deriv_delta = (term.d as f64) - (c as f64) * delta.powi(c);
+        let deriv_delta = (term.d as f64) - delta;
         sum += term.n * (term.t as f64) * delta.powi(term.d - 1) * tau.powf((term.t - 1) as f64)
-            * (-delta.powi(c)).exp()
-            * deriv_delta;
+            * deriv_delta* (-delta).exp()
     }
 
     // Exponential terms (i=23 to i=42): c=2 ∂²(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δ²))/∂δ∂τ
     for term in &RES_EXP_D2_C2 {
-        let c = 2;
-        let deriv_delta = (term.d as f64) - (c as f64) * delta.powi(c);
+        let delta_c = delta * delta;
+        let deriv_delta = (term.d as f64) - 2.0* delta_c;
         sum += term.n * (term.t as f64) * delta.powi(term.d - 1) * tau.powf((term.t - 1) as f64)
-            * (-delta.powi(c)).exp()
-            * deriv_delta;
+            * deriv_delta * (-delta_c).exp();
     }
 
     // Exponential terms (i=43 to i=51): ∂²(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δᶜ))/∂δ∂τ
     for term in &RES_EXP_D2_CN {
-        let deriv_delta = (term.d as f64) - (term.c as f64) * delta.powi(term.c);
+        let delta_c = delta.powi(term.c);
+        let deriv_delta = (term.d as f64) - (term.c as f64)* delta_c;
         sum += term.n * (term.t as f64) * delta.powi(term.d - 1) * tau.powf((term.t - 1) as f64)
-            * (-delta.powi(term.c)).exp()
-            * deriv_delta;
+            * deriv_delta * (-delta_c).exp();     
     }
 
     // Gaussian terms (i=1 to i=3): ∂²(Σᵢ nᵢδᵈⁱτᵗⁱexp[-αᵢ(δ-εᵢ)²-βᵢ(τ-γᵢ)²])/∂δ∂τ
