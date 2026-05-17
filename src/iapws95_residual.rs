@@ -307,54 +307,30 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
         }
     }
 
-    // Exponential terms (i=8 to i=22): nᵢ δᵈⁱ τᵗⁱ exp(-δ), c=1
+    // Exponential terms (i=8 to i=22): nᵢ δᵈⁱ τᵗⁱ exp(-δ), c= 1,fn error
     for term in &RES_EXP_D2_C1 {
         let d = term.d as f64;
-        let c = 1; // fixed for C1 terms
-        let exp_term = (-delta.powi(c)).exp();
-        let tau_term = tau.powi(term.t);
-        let n_term = term.n;
-        
-        // Let's compute using the product rule directly, which is safer
-        let f_prime_prime = n_term * tau_term * exp_term * 
-            (d * (d - 1.0) * if term.d >=2 { delta.powi(term.d-2) } else { 0.0 }
-            - 2.0 * d * (c as f64) * delta.powi(term.d - 1 + c -1)
-            + (c as f64) * (c as f64) * delta.powi(term.d + 2*(c - 1))
-            - (c as f64) * ((c as f64) - 1.0) * delta.powi(term.d + c - 2));
-        sum += f_prime_prime;
+        let exp_term: f64 = (-delta).exp();
+        let d_term = delta.powi(term.d-2)*tau.powi(term.t)*((d - delta)*(d - 1.0-delta)-delta);
+        sum += term.n*exp_term*d_term;
     }
 
-    // Exponential terms (i=23 to i=42): nᵢ δᵈⁱ τᵗⁱ exp(-δ²), c=2
+    // Exponential terms (i=23 to i=42): nᵢ exp(-δ²)[δᵈⁱ τᵗⁱ()] , c=2 fn error
     for term in &RES_EXP_D2_C2 {
         let d = term.d as f64;
-        let c = 2; // fixed for C2 terms
-        let exp_term = (-delta.powi(c)).exp();
-        let tau_term = tau.powi(term.t);
-        let n_term = term.n;
-        
-        let f_prime_prime = n_term * tau_term * exp_term * 
-            (d * (d - 1.0) * if term.d >=2 { delta.powi(term.d-2) } else {0.0}
-            - 2.0 * d * (c as f64) * delta.powi(term.d - 1 + c -1)
-            + (c as f64) * (c as f64) * delta.powi(term.d + 2*(c - 1))
-            - (c as f64) * ((c as f64) - 1.0) * delta.powi(term.d + c - 2));
-        sum += f_prime_prime;
-    }
+        let delta_c= delta *delta;
+        let exp_term: f64 = (-delta_c).exp();
+        let d_term = delta.powi(term.d-2)*tau.powi(term.t)*((d -2.0*delta_c)*(d - 1.0-delta_c)-2.0*delta_c);
+        sum += term.n*exp_term*d_term;
+       }
 
-    // Exponential terms (i=43 to i=51): nᵢ δᵈⁱ τᵗⁱ exp(-δᶜⁱ)
+    // Exponential terms (i=43 to i=51): nᵢ  exp(-δᶜⁱ)[δᵈⁱ τᵗⁱ()] c=3,4,6 fn error
     for term in &RES_EXP_D2_CN {
         let d = term.d as f64;
-        let c = term.c as f64;
         let delta_c = delta.powi(term.c);
-        let exp_term = (-delta_c).exp();
-        let tau_term = tau.powi(term.t);
-        let n_term = term.n;
-        
-        let f_prime_prime = n_term * tau_term * exp_term * 
-            (d * (d - 1.0) * if term.d >=2 { delta.powi(term.d-2) } else {0.0}
-            - 2.0 * d * c * delta.powi(term.d - 1 + term.c - 1)
-            + c * c * delta.powi(term.d + 2*(term.c - 1))
-            - c * (c - 1.0) * delta.powi(term.d + term.c - 2));
-        sum += f_prime_prime;
+        let exp_term: f64 = (-delta_c).exp();
+        let d_term = delta.powi(term.d-2)*tau.powi(term.t)*((d -2.0*delta_c)*(d - 1.0-delta_c)-2.0*delta_c);
+        sum += term.n*exp_term*d_term;      
     }
 
     // Gaussian terms

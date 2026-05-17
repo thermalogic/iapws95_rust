@@ -36,9 +36,9 @@ fn test_td() {
         let d: f64 = Td_data[i].d;
         // Test pressure
         assert_approx_eq!(Td_data[i].p, calc_pressure(T, d), 1.0e-6f64);
-        assert_approx_eq!(Td_data[i].cv, calc_cv(T, d), 1.0e-4f64);
+        assert_approx_eq!(Td_data[i].cv, calc_cv(T, d), 1.0e-6f64);
         // Test speed of sound - use larger tolerance near critical point (T=647K)
-        let w_tolerance = if T == 647.0 { 0.2 } else { 1.0e-5 };
+        let w_tolerance = if T == 647.0 { 0.15 } else { 1.0e-5 };
         assert_approx_eq!(Td_data[i].w, calc_speed_of_sound(T, d), w_tolerance);        
         // Test entropy
         assert_approx_eq!(Td_data[i].s, calc_entropy(T, d), 1.0e-6f64);
