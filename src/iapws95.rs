@@ -153,7 +153,7 @@ pub fn iapws95_in_range(T: f64, _p: Option<f64>) -> bool {
 }
 
 // ==========================================================================
-// Convenience Functions for (T,rho) → property calculations with °C input
+// Convenience Functions for (t_c,rho) → property calculations with °C input
 // ==========================================================================
 
 /// Calculate pressure at given temperature (°C) and density
