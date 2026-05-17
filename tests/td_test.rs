@@ -39,7 +39,6 @@ fn test_td() {
         // Test entropy
         assert_approx_eq!(Td_data[i].s, calc_entropy(T, d), 1.0e-6f64);
         assert_approx_eq!(Td_data[i].cv, calc_cv(T, d), 1.0e-6f64);
-        assert_approx_eq!(Td_data[i].w, calc_speed_of_sound(T, d), 1.0e-6f64);
-        
+        assert_approx_eq!(Td_data[i].w, calc_speed_of_sound(T, d),  1.0e-6f64);        
     }
 }

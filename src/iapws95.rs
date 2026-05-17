@@ -97,25 +97,45 @@ pub fn calc_cv(T: f64, rho: f64) -> f64 {
     IAPWS95_R * (-tau*tau *(phi_o_tt+phi_r_tt))
 }
 
-/// Compute isobaric heat capacity: cp = cv + R*(dp/dT)_rho^2 / (dp/drho)_T [kJ/(kg*K)]
+/// Compute isobaric heat capacity: cp = cv + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) [kJ/(kg*K)]
 pub fn calc_cp(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
-    let dphi_ddelta: f64=dphi_residual_ddelta(delta, tau);
-    let d2phi_ddelta2: f64=d2phi_residual_dtau2(delta, tau);
-    // Partial derivatives needed for cp calculation
-    let dpdT = IAPWS95_R * (1.0 + dphi_ddelta); // (dp/dT)_rho in MPa/K
-    let dpdrho = IAPWS95_R * T * delta / rho * (3.0 + d2phi_ddelta2); // (dp/drho)_T in MPa/(kg/m3)
-    let cv_val = calc_cv(T, -1.0); // Placeholder - would need actual d2phi/dtau2
-    cv_val + IAPWS95_R * dpdT * dpdT / dpdrho
+    let dphi_ddelta = dphi_residual_ddelta(delta, tau);
+    let d2phi_ddelta2 = d2phi_residual_ddelta2(delta, tau);
+    let d2phi_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
+    
+    let cv_val = calc_cv(T, rho);
+    
+    // cp = cv + R * (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)² / (1 + 2δ*φʳ_δ + δ²*φʳ_δδ)
+    let numerator = (1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau).powi(2);
+    let denominator = 1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta2;
+    
+    cv_val + IAPWS95_R * numerator / denominator
 }
 
 /// Compute speed of sound: w [m/s]
 pub fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
-    // Simplified formula using heat capacity ratio and basic compressibility
-    let cv=calc_cv(T, rho);
-    let cp=calc_cp(T, rho);
-    (cp / cv * IAPWS95_R * T * 1000.0).sqrt()
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+    
+    let dphi_ddelta = dphi_residual_ddelta(delta, tau);
+    let d2phi_ddelta2 = d2phi_residual_ddelta2(delta, tau);
+    let d2phi_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
+    let d2phi_dtau2_ideal = d2phi_ideal_dtau2(tau);
+    let d2phi_dtau2_residual = d2phi_residual_dtau2(delta, tau);
+    
+    // w² = R*T * [1 + 2δ*φʳ_δ + δ²*φʳ_δδ - (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)² / (τ²*(φ°_ττ + φʳ_ττ))]
+    let numerator = (1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau).powi(2);
+    let denominator = tau * tau * (d2phi_dtau2_ideal + d2phi_dtau2_residual);
+    
+    let w_squared = IAPWS95_R * T * (
+        1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta2 
+        - numerator / denominator
+    );
+    
+    // Convert from kJ/kg to J/kg (multiply by 1000) then take sqrt for m/s
+    (w_squared * 1000.0).sqrt()
 }
 
 // ==========================================================================
