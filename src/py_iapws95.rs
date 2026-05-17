@@ -73,7 +73,7 @@ fn iapws95(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(tr2w, m)?)?;
    
     // Saturation properties
-    m.add_function(wrap_pyfunction!(saturation_properties, m)?)?;
+    m.add_function(wrap_pyfunction!(sat_t, m)?)?;
     
     Ok(())
 }
