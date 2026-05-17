@@ -56,7 +56,7 @@ pub fn calc_pressure(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
     let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
-    IAPWS95_R * T * delta * (1.0 + delta * dphi_r_ddelta)
+    IAPWS95_R * T * rho * (1.0 + delta * dphi_r_ddelta) / 1000.0
 }
 
 /// Compute specific internal energy: u = RT*tau*(phi_o + phi_r + tau*dphi/dtau) [kJ/kg]
