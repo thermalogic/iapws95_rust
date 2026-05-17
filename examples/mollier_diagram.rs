@@ -1,4 +1,5 @@
-use iapws95::iapws95::{calc_entropy, calc_enthalpy, IAPWS95_TCRIT, solve_density};
+use iapws95::iapws95::*;
+use iapws95::iapws95_pt::solve_density;
 use iapws95::iapws95_saturation::calc_saturation_properties;
 
 use plotters::prelude::*;
