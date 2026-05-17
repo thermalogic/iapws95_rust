@@ -1,7 +1,7 @@
 """
  IAPWS-95 Python bindings
 """
-from iapws95 import  tr2h, tr2p
+from iapws95 import  tr2p,tr2h
 
 t,r = 300-273.15,0.9965560e3
 
