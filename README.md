@@ -189,6 +189,55 @@ Implements the residual part (φʳ) of the dimensionless Helmholtz free energy, 
 | `d2phi_residual_dtau2(delta, tau)` | Second derivative ∂²φʳ/∂τ² |
 | `d2phi_residual_ddelta_dtau(delta, tau)` | Mixed derivative ∂²φʳ/∂δ∂τ |
 
+#### `iapws95_saturation` - Saturation Properties Module
+
+Implements saturation properties calculation along the vapor-liquid equilibrium line based on IAPWS-95 Table 8.
+
+**Phase Equilibrium Condition**:
+
+The saturation properties are calculated using the phase-equilibrium condition (Maxwell criterion):
+
+```
+p(δ', τ) = p(δ'', τ) = p_σ     (equal pressure)
+g(δ', τ) = g(δ'', τ)           (equal Gibbs energy)
+```
+
+Where:
+- `δ'` - Reduced density of saturated liquid
+- `δ''` - Reduced density of saturated vapor
+- `p_σ` - Saturation vapor pressure
+- `g` - Gibbs free energy
+
+**Algorithm**:
+
+1. **Initial pressure estimate**: Wagner equation for vapor pressure
+2. **Density root finding**: Bisection method to find δ' and δ'' at given pressure
+3. **Pressure iteration**: Adjust pressure until Gibbs energy difference |g' - g''| < tolerance
+
+**Available Functions**:
+
+| Function | Description | Returns |
+|------|------|------|
+| `calc_saturation_properties(T)` | Calculate all saturation properties at temperature T | `Option<SaturationProperties>` |
+
+**SaturationProperties Structure**:
+
+| Field | Description | Unit |
+|------|------|------|
+| `p_sat` | Saturation vapor pressure | MPa |
+| `rho_l` | Saturated liquid density | kg/m³ |
+| `rho_v` | Saturated vapor density | kg/m³ |
+| `h_l` | Saturated liquid specific enthalpy | kJ/kg |
+| `h_v` | Saturated vapor specific enthalpy | kJ/kg |
+| `s_l` | Saturated liquid specific entropy | kJ/(kg·K) |
+| `s_v` | Saturated vapor specific entropy | kJ/(kg·K) |
+
+**Valid Range**:
+
+| Parameter | Range |
+|------|------|
+| Temperature | 273.16 K to 647.096 K (triple point to critical point) |
+
 ---
 
 ## API Functions
@@ -202,6 +251,7 @@ Implements the residual part (φʳ) of the dimensionless Helmholtz free energy, 
 | `calc_cv` | (T: f64, rho: f64) -> f64 | Calculate constant-volume specific heat (kJ/(kg·K)) |
 | `calc_cp` | (T: f64, rho: f64) -> f64 | Calculate constant-pressure specific heat (kJ/(kg·K)) |
 | `calc_speed_of_sound` | (T: f64, rho: f64) -> f64 | Calculate speed of sound (m/s) |
+| `calc_saturation_properties` | (T: f64) -> Option<SaturationProperties> | Calculate saturation properties at temperature T |
 
 ## Algorithm Description
 
@@ -268,6 +318,7 @@ The current test suite includes the following test cases:
 |------|------|------|
 | `td_free_energy.rs` | Verifies calculation accuracy of ideal gas and residual parts of Helmholtz free energy (based on Table 6 reference data) | `assert_approx_eq` |
 | `td_test.rs` | Verifies T-d-p equation of state calculation accuracy (based on Table 7 reference data) | `assert_approx_eq` |
+| `T_saturation_table8.rs` | Verifies saturation properties calculation accuracy (based on Table 8 reference data) | `assert_approx_eq` |
 
 ### Test Case Examples
 
