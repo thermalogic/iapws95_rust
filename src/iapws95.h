@@ -30,33 +30,7 @@ extern "C" {
  *   - macOS (clang)
  */
 
-// ==========================================================================
-// Functions for (p,T) → property calculations using numerical inversion
-// ==========================================================================
-
-/**
- * @brief Calculate specific enthalpy at given pressure and temperature
- * 
- * @param p Pressure in MPa
- * @param t_c Temperature in °C
- * @return Specific enthalpy h in kJ/kg, or -1.0 on error
- */
-double iapws95_pt2h(double p, double t_c);
-
-/**
- * @brief Calculate specific entropy at given pressure and temperature
- * 
- * @param p Pressure in MPa
- * @param t_c Temperature in °C
- * @return Specific entropy s in kJ/(kg·K), or -1.0 on error
- */
-double iapws95_pt2s(double p, double t_c);
-
-// ==========================================================================
-// Functions for (T,rho) → property calculations - direct computation
-// ==========================================================================
-
-/**
+ /**
  * @brief Calculate pressure at given temperature and density
  * 
  * @param t_c Temperature in °C
@@ -118,28 +92,6 @@ double iapws95_tr2cp(double t_c, double rho);
  * @return Speed of sound w in m/s
  */
 double iapws95_tr2w(double t_c, double rho);
-
-// ==========================================================================
-// Functions for (T,x) → property calculations in two-phase region
-// ==========================================================================
-
-/**
- * @brief Calculate specific enthalpy at given temperature and quality
- * 
- * @param t_c Temperature in °C (saturation temperature)
- * @param x Quality (0 = saturated liquid, 1 = saturated vapor)
- * @return Specific enthalpy h in kJ/kg, or -1.0 on error
- */
-double iapws95_tx2h(double t_c, double x);
-
-/**
- * @brief Calculate specific entropy at given temperature and quality
- * 
- * @param t_c Temperature in °C (saturation temperature)
- * @param x Quality (0 = saturated liquid, 1 = saturated vapor)
- * @return Specific entropy s in kJ/(kg·K), or -1.0 on error
- */
-double iapws95_tx2s(double t_c, double x);
 
 // ==========================================================================
 // Saturation properties

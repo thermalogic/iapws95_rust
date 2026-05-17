@@ -15,32 +15,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "iapws95.h"
+#include "../src/iapws95.h"
 
 int main(void) {
     printf("=== IAPWS-95 Thermodynamic Properties (C Interface) ===\n\n");
 
     // Get library version
     printf("Library Version: %s\n\n", iapws95_version());
-
-    // Example 1: Single-phase properties at p=16.10 MPa, T=535.10°C
-    printf("--- Example 1: Single-phase Properties ---\n");
-    double p = 16.10;
-    double t_c = 535.10;
-
-    double h = iapws95_pt2h(p, t_c);
-    double s = iapws95_pt2s(p, t_c);
-
-    if (h >= 0.0 && s >= 0.0) {
-        printf("Input:\n");
-        printf("  Pressure p = %.2f MPa\n", p);
-        printf("  Temperature T = %.2f °C\n\n", t_c);
-        printf("Output:\n");
-        printf("  Enthalpy h = %.4f kJ/kg\n", h);
-        printf("  Entropy s = %.6f kJ/(kg·K)\n", s);
-    } else {
-        printf("Error: Failed to calculate properties\n");
-    }
 
     // Example 2: Saturation properties at T=100°C
     printf("\n--- Example 2: Saturation Properties ---\n");
@@ -80,25 +61,6 @@ int main(void) {
             printf("%-10.2f %-12.6f %-12.2f %-12.2f %-12.2f %-12.2f\n",
                    temps[i], sat.p_sat, sat.rho_l, sat.rho_v, sat.h_l, sat.h_v);
         }
-    }
-
-    // Example 4: Isoquality line properties (x=0.5 at T=200°C)
-    printf("\n--- Example 4: Wet Steam Properties ---\n");
-    double t_wet = 200.0;
-    double x = 0.5;
-
-    double h_mix = iapws95_tx2h(t_wet, x);
-    double s_mix = iapws95_tx2s(t_wet, x);
-
-    if (h_mix >= 0.0 && s_mix >= 0.0) {
-        printf("Input:\n");
-        printf("  Temperature T = %.2f °C\n", t_wet);
-        printf("  Quality x = %.1f\n\n", x);
-        printf("Output:\n");
-        printf("  Enthalpy h = %.4f kJ/kg\n", h_mix);
-        printf("  Entropy s = %.6f kJ/(kg·K)\n", s_mix);
-    } else {
-        printf("Error: Failed to calculate properties\n");
     }
 
     // Example 5: Direct (T,ρ) → property calculations

@@ -35,7 +35,6 @@ This project is a Rust implementation of the [IAPWS-95](https://iapws.org/readme
 | | Internal energy (u) | ✅ Implemented |
 | | Enthalpy (h) | ✅ Implemented |
 | | Constant-pressure specific heat (cp) | ✅ Implemented |
-| **Inverse Solver** | Density from (p,T) - solve_density | ⚠️ Implemented (see Known Limitations) |
 | **Saturation** | Saturation properties module | ✅ Complete |
 | | Saturation pressure pₛ(T) | ✅ Complete |
 | | Saturation densities ρ'(T), ρ''(T) | ✅ Complete |
@@ -174,28 +173,24 @@ iapws95_rust/
 ├── Cargo.toml              # Project configuration (includes pyo3 for Python bindings)
 ├── pyproject.toml          # maturin build configuration for Python package
 ├── src/
-│   ├── lib.rs              # Library entry point, exports all public modules
-│   ├── iapws95.h           # C FFI header file
-│   ├── iapws95.rs          # Main module: reference constants, data structures, API functions
-│   ├── iapws95_ideal.rs    # Ideal gas part implementation (φ°)
-│   ├── iapws95_residual.rs # Residual part implementation (φʳ)
-│   ├── iapws95_saturation.rs # Saturation properties calculation module
-│   ├── py_iapws95.rs       # Python bindings via PyO3
-│   └── c_iapws95.rs        # C FFI bindings
+│   ├── lib.rs                    # Library entry point, exports all public modules
+│   ├── iapws95.h                 # C FFI header file
+│   ├── iapws95.rs                # Main module: reference constants, data structures, API functions
+│   ├── iapws95_ideal.rs          # Ideal gas part implementation (φ°)
+│   ├── iapws95_residual.rs       # Residual part implementation (φʳ)
+│   ├── iapws95_saturation.rs     # Saturation properties calculation module
+│   ├── py_iapws95.rs             # Python bindings via PyO3
+│   └── c_iapws95.rs              # C FFI bindings
 ├── examples/
-│   ├── basic_usage.rs      # Example: single-phase and saturation properties
-│   └── mollier_diagram.rs  # Example: Generate H-S diagram using plotters
+│   └── basic_usage.rs            # Example: single-phase and saturation properties
 ├── demo/
-│   ├── iapws95_usage.py    # Python example: Basic property calculation
-│   ├── plot_mollier.py     # Python example: Generate H-S diagram with matplotlib
-│   ├── c_example.c         # C example: Using C FFI bindings
-│   └── Makefile            # Build script for C examples
-├── img/
-│   └── mollier_diagram.png # Sample Mollier diagram output
+│   ├── iapws95_usage.py          # Python example: Basic property calculation
+│   ├── c_example.c               # C example: Using C FFI bindings
+│   └── Makefile                  # Build script for C examples
 └── tests/
-    ├── td_free_energy.rs   # Helmholtz free energy calculation verification test
-    ├── td_test.rs          # T-d-p equation of state test
-    └── T_saturation_table8.rs # Saturation properties verification (Table 8)
+    ├── td_free_energy.rs         # Helmholtz free energy calculation verification test
+    ├── td_test.rs                # T-ρ-p equation of state test (Table 7)
+    └── T_saturation_table8.rs    # Saturation properties verification (Table 8)
 ```
 
 ### Module Description
@@ -229,43 +224,6 @@ Provides reference constants, valid range definitions, and main API functions.
 | `calc_cv(T, rho)` | Calculate constant-volume specific heat (kJ/(kg·K)) |
 | `calc_cp(T, rho)` | Calculate constant-pressure specific heat (kJ/(kg·K)) |
 | `calc_speed_of_sound(T, rho)` | Calculate speed of sound (m/s) |
-
-#### Inverse Problem Solver - (p,T) → ρ
-
-Provides numerical solution for density when pressure and temperature are known. This is essential for applications where (p,T) conditions are given instead of (T,ρ).
-
-**Available Functions**:
-
-| Function | Description | Parameters | Returns |
-|------|------|------|------|
-| `solve_density(p, T)` | Solve density at given pressure and temperature | p: MPa, T: K | `Option<f64>` - density in kg/m³ or None if convergence fails |
-
-**Algorithm**:
-
-Uses Newton's method with multiple initial guesses based on ideal gas law:
-
-1. **Initial guess**: ρ₀ = p/(R·T) from ideal gas equation
-2. **Guess selection**: Choose appropriate starting point based on density regime (vapor/liquid region)
-3. **Newton iteration**: Solve f(ρ) = p_calc(T,ρ) - p = 0 with adaptive damping
-
-**Usage Example**:
-
-```rust
-use iapws95::iapws95_pT::solve_density;
-use iapws95::iapws95::calc_enthalpy;
-
-// Given p=16.10 MPa, T=808.25 K (535.10°C)
-if let Some(rho) = solve_density(16.10, 808.25) {
-    let h = calc_enthalpy(808.25, rho);
-    println!("Density: {:.4} kg/m³", rho);
-    println!("Enthalpy: {:.4} kJ/kg", h);
-}
-```
-
-**Notes**:
-- Returns `None` if Newton's method fails to converge within 200 iterations
-- Particularly reliable for single-phase regions (superheated vapor, compressed liquid)
-- May have convergence issues near saturation boundary or at very low pressures
 
 #### `iapws95_ideal` - Ideal Gas Part
 
@@ -410,13 +368,6 @@ pip install target/wheels/iapws95-*.whl
 
 The Python bindings provide three categories of functions based on input parameters:
 
-**(p,T) → Property Calculations (Numerical Inversion)**:
-
-| Function | Description | Parameters | Returns | Notes |
-|------|------|------|------|------|
-| `pt2h(p, t)` | Calculate enthalpy at given pressure and temperature | p: MPa, t: °C | h: kJ/kg | May raise error if density solver fails |
-| `pt2s(p, t)` | Calculate entropy at given pressure and temperature | p: MPa, t: °C | s: kJ/(kg·K) | May raise error if density solver fails |
-
 **(T,ρ) → Property Calculations (Direct Computation)**:
 
 | Function | Description | Parameters | Returns |
@@ -428,13 +379,6 @@ The Python bindings provide three categories of functions based on input paramet
 | `tr2cv(t_c, rho)` | Calculate constant-volume specific heat at given T and ρ | t: °C, ρ: kg/m³ | cv: kJ/(kg·K) |
 | `tr2cp(t_c, rho)` | Calculate constant-pressure specific heat at given T and ρ | t: °C, ρ: kg/m³ | cp: kJ/(kg·K) |
 | `tr2w(t_c, rho)` | Calculate speed of sound at given temperature and density | t: °C, ρ: kg/m³ | w: m/s |
-
-**(T,x) → Property Calculations (Two-Phase Region)**:
-
-| Function | Description | Parameters | Returns |
-|------|------|------|------|
-| `tx2h(t, x)` | Calculate enthalpy at given temperature and quality | t: °C, x: 0~1 | h: kJ/kg |
-| `tx2s(t, x)` | Calculate entropy at given temperature and quality | t: °C, x: 0~1 | s: kJ/(kg·K) |
 
 **Saturation Properties**:
 
@@ -516,13 +460,6 @@ This produces:
 
 The C bindings provide three categories of functions based on input parameters:
 
-**(p,T) → Property Calculations (Numerical Inversion)**:
-
-| Function | Description | Parameters | Returns | Notes |
-|------|------|------|------|------|
-| `iapws95_pt2h(p, t)` | Calculate enthalpy at given pressure and temperature | p: MPa, t: °C | h: kJ/kg | Returns -1.0 on error |
-| `iapws95_pt2s(p, t)` | Calculate entropy at given pressure and temperature | p: MPa, t: °C | s: kJ/(kg·K) | Returns -1.0 on error |
-
 **(T,ρ) → Property Calculations (Direct Computation)**:
 
 | Function | Description | Parameters | Returns |
@@ -534,13 +471,6 @@ The C bindings provide three categories of functions based on input parameters:
 | `iapws95_tr2cv(t_c, rho)` | Calculate Cv at given temperature and density | t: °C, ρ: kg/m³ | cv: kJ/(kg·K) |
 | `iapws95_tr2cp(t_c, rho)` | Calculate Cp at given T and ρ | t: °C, ρ: kg/m³ | cp: kJ/(kg·K) |
 | `iapws95_tr2w(t_c, rho)` | Calculate speed of sound at given T and ρ | t: °C, ρ: kg/m³ | w: m/s |
-
-**(T,x) → Property Calculations (Two-Phase Region)**:
-
-| Function | Description | Parameters | Returns | Notes |
-|------|------|------|------|------|
-| `iapws95_tx2h(t, x)` | Calculate enthalpy at given T and quality | t: °C, x: 0~1 | h: kJ/kg | Returns -1.0 on error |
-| `iapws95_tx2s(t, x)` | Calculate entropy at given T and quality | t: °C, x: 0~1 | s: kJ/(kg·K) | Returns -1.0 on error |
 
 **Saturation Properties**:
 
@@ -577,11 +507,6 @@ int main() {
     if (iapws95_saturation_properties(100.0, &sat) == 0) {
         printf("Saturation pressure: %.6f MPa\n", sat.p_sat);
     }
-
-    // Two-phase mixture at T=200°C, x=0.5 (quality)
-    double h_mix = iapws95_tx2h(200.0, 0.5);
-    double s_mix = iapws95_tx2s(200.0, 0.5);
-
     return 0;
 }
 ```
@@ -601,15 +526,6 @@ cl /I..\src c_example.c ..\target\release\iapws95.lib
 **Dependencies**:
 - C compiler (gcc, clang, or MSVC)
 - No additional runtime dependencies
-
-**Known Limitations**:
-
-The `(p,T)` → property functions (`iapws95_pt2h()`, `iapws95_pt2s()`) use numerical inversion to solve for density from pressure and temperature. These may return -1.0 in certain conditions:
-- Very low pressures (< 0.001 MPa) near triple point temperature
-- Near saturation boundary where multiple density solutions exist
-- Extreme superheated vapor conditions
-
-**Recommendation**: For reliable calculations, use `(T,ρ)` → property functions (`iapws95_tr2p()`, `iapws95_tr2h()`, etc.) which provide direct computation without numerical inversion. Check return values (-1.0 indicates failure) for all inversion-based functions.
 
 ---
 
@@ -683,15 +599,10 @@ maturin develop --features python
 # Run basic usage example
 python demo/iapws95_usage.py
 
-# Generate Mollier diagram with matplotlib
-python demo/plot_mollier.py
 ```
 
 The Python examples demonstrate:
 - **Basic property calculation**: Calculate enthalpy and entropy at given (p, T) conditions using `iapws95_usage.py`
-- **Mollier diagram generation**: Full H-S diagram with isotherms, isobars, saturation lines, and isoquality curves using matplotlib in `plot_mollier.py`
-
-**Note**: The Python Mollier diagram example uses `(p,T)` → property functions which may have convergence issues at very low pressures. For production use, prefer `(T,ρ)` → direct computation functions.
 
 ### Running C Examples
 
@@ -710,9 +621,7 @@ make run
 ```
 
 The C example demonstrates:
-- **Single-phase properties**: Calculate enthalpy and entropy at given (p, T) conditions using numerical inversion
 - **Saturation properties**: Get all saturation properties at a given temperature
-- **Wet steam properties**: Calculate properties in the two-phase region using quality x
 - **Multi-temperature table**: Generate a saturation properties table from triple point to critical point
 - **Direct (T,ρ) calculations**: Compute pressure, internal energy, enthalpy, entropy, specific heats, and speed of sound directly without numerical inversion
 

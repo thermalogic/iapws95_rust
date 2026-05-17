@@ -6,7 +6,6 @@
 
 use crate::iapws95::*;
 use crate::iapws95_saturation::calc_saturation_properties;
-use crate::iapws95_pT::solve_density;
 /// C-compatible saturation properties structure
 #[repr(C)]
 pub struct CIAPWS95SatProps {
@@ -17,38 +16,6 @@ pub struct CIAPWS95SatProps {
     pub h_v: f64,
     pub s_l: f64,
     pub s_v: f64,
-}
-
-// ==========================================================================
-// Functions for (p,T) → property calculations using numerical inversion
-// ==========================================================================
-
-#[no_mangle]
-pub extern "C" fn iapws95_pt2h(p: f64, t_c: f64) -> f64 {
-    let t_k = t_c + 273.15;
-    
-    if p <= 0.0 || t_k <= 0.0 {
-        return -1.0;
-    }
-
-    match solve_density(p, t_k) {
-        Some(rho) => calc_enthalpy(t_k, rho),
-        None => -1.0,
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn iapws95_pt2s(p: f64, t_c: f64) -> f64 {
-    let t_k = t_c + 273.15;
-    
-    if p <= 0.0 || t_k <= 0.0 {
-        return -1.0;
-    }
-
-    match solve_density(p, t_k) {
-        Some(rho) => calc_entropy(t_k, rho),
-        None => -1.0,
-    }
 }
 
 // ==========================================================================
@@ -88,42 +55,6 @@ pub extern "C" fn iapws95_tr2cp(t_c: f64, rho: f64) -> f64 {
 #[no_mangle]
 pub extern "C" fn iapws95_tr2w(t_c: f64, rho: f64) -> f64 {
     tr2w(t_c, rho)
-}
-
-// ==========================================================================
-// Functions for (T,x) → property calculations in two-phase region
-// ==========================================================================
-
-#[no_mangle]
-pub extern "C" fn iapws95_tx2h(t_c: f64, x: f64) -> f64 {
-    let t_k = t_c + 273.15;
-    
-    if t_k < 273.16 || t_k > IAPWS95_TCRIT {
-        return -1.0;
-    }
-
-    if let Some(sat) = calc_saturation_properties(t_k) {
-        let h = sat.h_l + x * (sat.h_v - sat.h_l);
-        return h;
-    }
-
-    -1.0
-}
-
-#[no_mangle]
-pub extern "C" fn iapws95_tx2s(t_c: f64, x: f64) -> f64 {
-    let t_k = t_c + 273.15;
-    
-    if t_k < 273.16 || t_k > IAPWS95_TCRIT {
-        return -1.0;
-    }
-
-    if let Some(sat) = calc_saturation_properties(t_k) {
-        let s = sat.s_l + x * (sat.s_v - sat.s_l);
-        return s;
-    }
-
-    -1.0
 }
 
 // ==========================================================================

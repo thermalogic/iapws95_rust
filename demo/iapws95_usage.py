@@ -1,11 +1,12 @@
 """
  IAPWS-95 Python bindings
 """
-from iapws95 import pt2h, pt2s, tr2h, tr2s, tr2cv, tr2cp, tr2w, tr2x
+from iapws95 import  tr2h, tr2p
 
-p, t = 16.10, 535.10
+t,r = 300-273.15,0.9965560e3
 
-h = pt2h(p, t)
-s = pt2s(p, t)
-print("(p,t),h,s:",
-      "{:>.2f}\t {:>.2f}\t {:>.2f}\t {:>.3f}".format(p, t, h, s))
+p = tr2p(t,r)
+h = tr2h(t,r)
+
+print("(t,r),p,h:",
+      "{:>.2f}\t {:>.2f}\t {:>.2f}\t {:>.3f}".format(t,r, p,h))
