@@ -6,11 +6,17 @@ description = "IAPWS-95 Thermodynamic Properties Library for Water/Steam - Rust 
 repository = "https://github.com/thermalogic/iapws95_rust"
 license = "MIT"
 
-[dependencies]
-
-[dev-dependencies]
-assert_approx_eq = "1.1.0"
-
 [lib]
 name = "iapws95"
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.24", features = ["extension-module"], optional = true }
+
+[features]
+python = ["pyo3"]
+
+[dev-dependencies]
+assert_approx_eq = "1.1.0"
+plotters = { version = "0.3", features = ["all_series"] }
