@@ -16,9 +16,7 @@ extern "C" {
  *   Pressure: Up to 1000 MPa
  * 
  * Function Categories:
- *   - pt2*: Functions for (p,T) → property using numerical inversion
- *   - tr2*: Functions for (T,ρ) → property direct computation
- *   - tx2*: Functions for (T,x) → property in two-phase region
+ *   - tr2*: Functions for (t,ρ) → property direct computation
  * 
  * Calling Convention:
  *   All functions use the standard C calling convention (cdecl), which is

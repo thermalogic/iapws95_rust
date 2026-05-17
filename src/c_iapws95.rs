@@ -19,7 +19,7 @@ pub struct CIAPWS95SatProps {
 }
 
 // ==========================================================================
-// Functions for (T,rho) → property calculations - direct computation
+// Functions for (t,rho) → property calculations - direct computation
 // ==========================================================================
 
 #[no_mangle]

@@ -225,6 +225,19 @@ Provides reference constants, valid range definitions, and main API functions.
 | `calc_cp(T, rho)` | Calculate constant-pressure specific heat (kJ/(kg·K)) |
 | `calc_speed_of_sound(T, rho)` | Calculate speed of sound (m/s) |
 
+
+**(t,ρ) → Property Calculations (Direct Computation)**:
+
+| Function | Description | Parameters | Returns |
+|------|------|------|------|
+| `tr2p(t_c, rho)` | Calculate pressure at given temperature and density | t: °C, ρ: kg/m³ | p: MPa |
+| `tr2u(t_c, rho)` | Calculate internal energy at given temperature and density | t: °C, ρ: kg/m³ | u: kJ/kg |
+| `tr2h(t_c, rho)` | Calculate enthalpy at given temperature and density | t: °C, ρ: kg/m³ | h: kJ/kg |
+| `tr2s(t_c, rho)` | Calculate entropy at given temperature and density | t: °C, ρ: kg/m³ | s: kJ/(kg·K) |
+| `tr2cv(t_c, rho)` | Calculate constant-volume specific heat at given T and ρ | t: °C, ρ: kg/m³ | cv: kJ/(kg·K) |
+| `tr2cp(t_c, rho)` | Calculate constant-pressure specific heat at given T and ρ | t: °C, ρ: kg/m³ | cp: kJ/(kg·K) |
+| `tr2w(t_c, rho)` | Calculate speed of sound at given temperature and density | t: °C, ρ: kg/m³ | w: m/s |
+
 #### `iapws95_ideal` - Ideal Gas Part
 
 Implements the ideal gas part (φ°) of the dimensionless Helmholtz free energy, based on IAPWS-95 Equation 5 and Tables 1 and 4.
@@ -368,7 +381,7 @@ pip install target/wheels/iapws95-*.whl
 
 The Python bindings provide three categories of functions based on input parameters:
 
-**(T,ρ) → Property Calculations (Direct Computation)**:
+**(t,ρ) → Property Calculations (Direct Computation)**:
 
 | Function | Description | Parameters | Returns |
 |------|------|------|------|
@@ -403,10 +416,6 @@ w = tr2w(t, rho)      # Speed of sound: m/s
 
 # Saturation properties at T=100°C
 p_sat, rho_l, rho_v, h_l, h_v, s_l, s_v = saturation_properties(100.0)
-
-# Two-phase mixture at T=200°C, x=0.5 (quality)
-h_mix = tx2h(200.0, 0.5)
-s_mix = tx2s(200.0, 0.5)
 ```
 
 **Dependencies**:
@@ -415,15 +424,6 @@ Python bindings require:
 - Python 3.8+
 - matplotlib (for plotting examples)
 - numpy (for plotting examples)
-
-**Known Limitations**:
-
-The `(p,T)` → property functions (`pt2h()`, `pt2s()`) use numerical inversion to solve for density from pressure and temperature. This may fail in certain conditions:
-- Very low pressures (< 0.001 MPa) near triple point temperature
-- Near saturation boundary where multiple density solutions exist
-- Extreme superheated vapor conditions
-
-**Recommendation**: For reliable calculations, use `(T,ρ)` → property functions (`tr2p()`, `tr2h()`, etc.) which provide direct computation without numerical inversion.
 
 ---
 
@@ -460,7 +460,7 @@ This produces:
 
 The C bindings provide three categories of functions based on input parameters:
 
-**(T,ρ) → Property Calculations (Direct Computation)**:
+**(t,ρ) → Property Calculations (Direct Computation)**:
 
 | Function | Description | Parameters | Returns |
 |------|------|------|------|
@@ -526,8 +526,6 @@ cl /I..\src c_example.c ..\target\release\iapws95.lib
 **Dependencies**:
 - C compiler (gcc, clang, or MSVC)
 - No additional runtime dependencies
-
----
 
 ## Algorithm Description
 
@@ -623,11 +621,9 @@ make run
 The C example demonstrates:
 - **Saturation properties**: Get all saturation properties at a given temperature
 - **Multi-temperature table**: Generate a saturation properties table from triple point to critical point
-- **Direct (T,ρ) calculations**: Compute pressure, internal energy, enthalpy, entropy, specific heats, and speed of sound directly without numerical inversion
+- **Direct (t,ρ) calculations**: Compute pressure, internal energy, enthalpy, entropy, specific heats, and speed of sound directly without numerical inversion
 
 **Note**: The C example includes comprehensive demonstrations of all function categories, including the recommended `(T,ρ)` → property direct computation functions.
-
----
 
 ## Testing
 
