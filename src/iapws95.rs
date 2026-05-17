@@ -54,7 +54,7 @@ pub fn inv_reduced_temp(T: f64) -> f64 {
 // Based on Table 3 relations of IAPWS-95
 // ==========================================================================
 
-/// Compute pressure: p = RT*delta*(1 + delta*ddelta) [MPa]
+/// Compute pressure: p = R·T·ρ·(1 + δ·∂φʳ/∂δ) / 1000 \[MPa\]
 pub fn calc_pressure(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -62,7 +62,7 @@ pub fn calc_pressure(T: f64, rho: f64) -> f64 {
     IAPWS95_R * T * rho * (1.0 + delta * dphi_r_ddelta) / 1000.0
 }
 
-/// Compute specific internal energy: u = RT*tau*(dphi_o/dtau + dphi_r/dtau) [kJ/kg]
+/// Compute specific internal energy: u = R·T·τ·(∂φ°/∂τ + ∂φʳ/∂τ) \[kJ/kg\]
 pub fn calc_internal_energy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -70,7 +70,7 @@ pub fn calc_internal_energy(T: f64, rho: f64) -> f64 {
     IAPWS95_R * T * tau * dphi_dtau
 }
 
-/// Compute specific entropy: s = R*(tau*dphi/dtau - phi_o - phi_r) [kJ/(kg·K)]
+/// Compute specific entropy: s = R·[τ·(∂φ°/∂τ + ∂φʳ/∂τ) - φ° - φʳ] \[kJ/(kg·K)\]
 pub fn calc_entropy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -82,7 +82,7 @@ pub fn calc_entropy(T: f64, rho: f64) -> f64 {
     IAPWS95_R * (tau * dphi_dtau - phi_o - phi_r)
 }
 
-/// Compute specific enthalpy: h = RT*[tau*(dphi_o/dtau + dphi_r/dtau) + 1 + delta*(1 + delta*dphi_r/ddelta)] [kJ/kg]
+/// Compute specific enthalpy: h = R·T·[τ·(∂φ°/∂τ + ∂φʳ/∂τ) + 1 + δ·∂φʳ/∂δ] \[kJ/kg\]
 pub fn calc_enthalpy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -92,7 +92,7 @@ pub fn calc_enthalpy(T: f64, rho: f64) -> f64 {
     IAPWS95_R * T * (tau * (dphi_o_dtau + dphi_r_dtau) + 1.0 + delta * dphi_r_ddelta)
 }
 
-/// Compute isochoric heat capacity: cv = R*(-tau^2*(d2phi_o_tau2+d2phi_r_tau2)) [kJ/(kg·K)]
+/// Compute isochoric heat capacity: cv = -R·τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²) \[kJ/(kg·K)\]
 pub fn calc_cv(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
@@ -101,7 +101,7 @@ pub fn calc_cv(T: f64, rho: f64) -> f64 {
     IAPWS95_R * (-tau * tau * (phi_o_tt + phi_r_tt))
 }
 
-/// Compute isobaric heat capacity: cp = cv + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) [kJ/(kg·K)]
+/// Compute isobaric heat capacity: cp = cv + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) \[kJ/(kg·K)\]
 pub fn calc_cp(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
@@ -118,7 +118,8 @@ pub fn calc_cp(T: f64, rho: f64) -> f64 {
     cv_val + IAPWS95_R * numerator / denominator
 }
 
-/// Compute speed of sound: w [m/s]
+/// Compute speed of sound: w = √[R·T·(1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ² - N²/(τ²·∂²φ/∂τ²))] · √1000 [m/s]
+/// Where N = 1 + δ·∂φʳ/∂δ - δ·τ·∂²φʳ/∂δ∂τ
 pub fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -156,43 +157,43 @@ pub fn iapws95_in_range(T: f64, _p: Option<f64>) -> bool {
 // Convenience Functions for (t_c,rho) → property calculations with °C input
 // ==========================================================================
 
-/// Calculate pressure at given temperature (°C) and density
+/// Calculate pressure at given temperature (°C) and density \[MPa\]
 pub fn tr2p(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_pressure(t_k, rho)
 }
 
-/// Calculate internal energy at given temperature (°C) and density
+/// Calculate internal energy at given temperature (°C) and density \[kJ/kg\]
 pub fn tr2u(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_internal_energy(t_k, rho)
 }
 
-/// Calculate enthalpy at given temperature (°C) and density
+/// Calculate enthalpy at given temperature (°C) and density \[kJ/kg\]
 pub fn tr2h(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_enthalpy(t_k, rho)
 }
 
-/// Calculate entropy at given temperature (°C) and density
+/// Calculate entropy at given temperature (°C) and density \[kJ/(kg·K)\]
 pub fn tr2s(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_entropy(t_k, rho)
 }
 
-/// Calculate constant-volume specific heat at given temperature (°C) and density
+/// Calculate constant-volume specific heat at given temperature (°C) and density \[kJ/(kg·K)\]
 pub fn tr2cv(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_cv(t_k, rho)
 }
 
-/// Calculate constant-pressure specific heat at given temperature (°C) and density
+/// Calculate constant-pressure specific heat at given temperature (°C) and density \[kJ/(kg·K)\]
 pub fn tr2cp(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_cp(t_k, rho)
 }
 
-/// Calculate speed of sound at given temperature (°C) and density
+/// Calculate speed of sound at given temperature (°C) and density \[m/s\]
 pub fn tr2w(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_speed_of_sound(t_k, rho)

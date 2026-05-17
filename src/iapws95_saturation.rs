@@ -20,19 +20,19 @@ const SR1_RHOC: f64 = 322.0;
 
 /// Saturation properties at a given temperature
 pub struct SaturationProperties {
-    /// Saturation vapor pressure [MPa]
+    /// Saturation vapor pressure \[MPa\]
     pub p_sat: f64,
-    /// Saturated liquid density [kg/m³]
+    /// Saturated liquid density \[kg/m³\]
     pub rho_l: f64,
-    /// Saturated vapor density [kg/m³]
+    /// Saturated vapor density \[kg/m³\]
     pub rho_v: f64,
-    /// Saturated liquid specific enthalpy [kJ/kg]
+    /// Saturated liquid specific enthalpy \[kJ/kg\]
     pub h_l: f64,
-    /// Saturated vapor specific enthalpy [kJ/kg]
+    /// Saturated vapor specific enthalpy \[kJ/kg\]
     pub h_v: f64,
-    /// Saturated liquid specific entropy [kJ/(kg·K)]
+    /// Saturated liquid specific entropy \[kJ/(kg·K)\]
     pub s_l: f64,
-    /// Saturated vapor specific entropy [kJ/(kg·K)]
+    /// Saturated vapor specific entropy \[kJ/(kg·K)\]
     pub s_v: f64,
 }
 
@@ -196,7 +196,7 @@ fn solve_phase_equilibrium(t: f64, tau: f64) -> Option<(f64, f64)> {
     Some((delta_l, delta_v))
 }
 
-/// Compute saturation properties at given temperature T: [K] 
+/// Compute saturation properties at given temperature T \[K\]
 pub fn calc_saturation_properties(T: f64) -> Option<SaturationProperties> {
     if T < 273.16 || T > IAPWS95_TCRIT {
         return None;
@@ -225,7 +225,9 @@ pub fn calc_saturation_properties(T: f64) -> Option<SaturationProperties> {
     })
 }
 
-/// Compute saturation properties at given temperature t_c,°C 
+/// Compute saturation properties at given temperature t_c (°C)
+///
+/// Returns `None` if t_c is outside the valid range [0.01°C, 373.946°C].
 pub fn sat_t(t_c: f64) -> Option<SaturationProperties> {
     if t_c < 0.01 || t_c > IAPWS95_TCRIT - 273.15 {
         return None;

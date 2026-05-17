@@ -2,14 +2,18 @@
 //!
 //! Implements the residual part of the dimensionless Helmholtz free energy
 //! based on Table 5 of IAPWS-95 Formulation 1995 (Revised 2018).
+//!
+//! # Formula
+//!
+//! ```text
+//! φʳ(δ,τ) = Σᵢ nᵢ·δᵈⁱ·τᵗⁱ                                    [polynomial terms, i=1-7]
+//!         + Σᵢ nᵢ·δᵈⁱ·τᵗⁱ·exp(-δᶜⁱ)                          [exponential terms, i=8-51]
+//!         + Σᵢ nᵢ·δᵈⁱ·τᵗⁱ·exp[-αᵢ(δ-εᵢ)²-βᵢ(τ-γᵢ)²]          [Gaussian terms, i=52-54]
+//!         + Σᵢ nᵢ·Δᵇⁱ·δ·F(δ,τ)                               [non-analytic terms, i=55-56]
+//! ```
 
 // ==========================================================================
 // COEFFICIENTS - Residual Part (Table 5 of IAPWS-95)
-//
-// φʳ(δ,τ) = Σᵢ nᵢδᵈⁱτᵗⁱ                                   [polynomial terms，i=1-7]
-//         + Σᵢ nᵢδᵈⁱτᵗⁱexp(-δᶜⁱ)                          [exponential terms，i=8-51]
-//         + Σᵢ nᵢδᵈⁱτᵗⁱexp[-αᵢ(δ-εᵢ)²-βᵢ(τ-γᵢ)²]          [Gaussian terms,i=52-54]
-//         + Σᵢ nᵢΔᵇⁱδF(δ,τ)                               [non-analytic terms,i=55-56]
 // ==========================================================================
 
 /// Polynomial term: (d exponent of delta, t exponent of tau, n coefficient)
@@ -129,14 +133,14 @@ const RES_EXP_D2_CN: [ExpTermCN; 9] = [
     ExpTermCN { c: 6, d: 6, t: 50, n: -0.11841182425981 },       // i=51
 ];
 
-/// Gaussian term: (d, t, n, alpha, beta, gamma, epsilon)
+/// Gaussian terms (i=52-54) from Table 5 of IAPWS-95
 const RES_GAUSS: [GaussTerm; 3] = [
     GaussTerm { d: 3, t: 0, n: -0.31306260323435e2, a: 20, b: 150, g: 1.21, e: 1 },   // i=1
     GaussTerm { d: 3, t: 1, n:  0.31546140237781e2, a: 20, b: 150, g: 1.21, e: 1 },   // i=2
     GaussTerm { d: 3, t: 4, n: -0.25213154341695e4, a: 20, b: 250, g: 1.25, e: 1 },   // i=3
 ];
 
-/// Non-analytic terms (i=55(1) to i=65(2): nᵢΔᵇⁱδF(δ,τ)
+/// Non-analytic terms (i=55-56) from Table 5 of IAPWS-95: nᵢ·Δᵇⁱ·δ·F(δ,τ)
 const RES_NON_ANAL: [NonAnalTerm; 2] = [
     NonAnalTerm { a: 3.5, b: 0.85, B: 0.2, n: -0.14874640856724, C: 28, D: 700, A: 0.32, bt: 0.3 },   // i=1
     NonAnalTerm { a: 3.5, b: 0.95, B: 0.2, n:  0.31806110878444, C: 32, D: 800, A: 0.32, bt: 0.3 },   // i=2
@@ -156,10 +160,12 @@ fn gauss_exp(term: &GaussTerm, delta: f64, tau: f64) -> f64 {
 
 // ==========================================================================
 // RESIDUAL PART CALCULATIONS (Eq. 6 and Table 5 of IAPWS-95)
-// φʳ(δ,τ) = Σᵢ nᵢδᵈⁱτᵗⁱ + Σᵢ nᵢδᵈⁱτᵗⁱexp(-δᶜⁱ) + ...
 // ==========================================================================
 
-/// Compute residual part of dimensionless Helmholtz free energy
+/// Compute residual part of dimensionless Helmholtz free energy φʳ(δ,τ)
+///
+/// Sums all 56 terms across four categories: polynomial (7), exponential (44),
+/// Gaussian (3), and non-analytic (2).
 pub fn phi_residual(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
@@ -218,6 +224,9 @@ pub fn phi_residual(delta: f64, tau: f64) -> f64 {
 }
 
 /// Compute first derivative ∂φʳ/∂δ for residual part
+///
+/// Applies analytical derivatives to each term category. For non-analytic terms,
+/// applies the chain rule to compute both direct δ derivative and indirect contribution through Δ(δ,τ).
 pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
@@ -289,7 +298,7 @@ pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
 pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
-    // Polynomial terms (i=1 to i=7): ∂²(nᵢ δᵈⁱ τᵗⁱ)/∂δ² = nᵢ dᵢ (dᵢ-1) δᵈⁱ⁻² τᵗⁱ
+    // Polynomial terms (i=1 to i=7): ∂²(nᵢ·δᵈⁱ·τᵗⁱ)/∂δ² = nᵢ·dᵢ·(dᵢ-1)·δᵈⁱ⁻²·τᵗⁱ
     for term in &RES_POLY_D1 {
         let d = term.d as f64;
         if term.d >= 2 {
@@ -427,7 +436,7 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
 pub fn dphi_residual_dtau(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
-    // Polynomial terms (i=1 to i=7): ∂(Σᵢ nᵢδᵈⁱτᵗⁱ)/∂τ = nᵢtᵢδᵈⁱτᵗⁱ⁻¹
+    // Polynomial terms (i=1 to i=7): ∂(Σᵢ nᵢ·δᵈⁱ·τᵗⁱ)/∂τ = nᵢ·tᵢ·δᵈⁱ·τᵗⁱ⁻¹
     for term in &RES_POLY_D1 {
         sum += term.n * term.t * delta.powi(term.d) * tau.powf(term.t - 1.0);
     }
@@ -486,7 +495,7 @@ pub fn dphi_residual_dtau(delta: f64, tau: f64) -> f64 {
 pub fn d2phi_residual_dtau2(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
-    // Polynomial terms (i=1 to i=7): ∂²(Σᵢ nᵢδᵈⁱτᵗⁱ)/∂τ² = nᵢtᵢ(tᵢ-1)δᵈⁱτᵗⁱ⁻²
+    // Polynomial terms (i=1 to i=7): ∂²(Σᵢ nᵢ·δᵈⁱ·τᵗⁱ)/∂τ² = nᵢ·tᵢ·(tᵢ-1)·δᵈⁱ·τᵗⁱ⁻²
     for term in &RES_POLY_D1 {
         let t = term.t;
         sum += term.n * t * (t - 1.0) * delta.powi(term.d) * tau.powf(t - 2.0);
@@ -581,7 +590,7 @@ pub fn d2phi_residual_dtau2(delta: f64, tau: f64) -> f64 {
 pub fn d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
-    // Polynomial terms (i=1 to i=7): ∂²(Σᵢ nᵢδᵈⁱτᵗⁱ)/∂δ∂τ = nᵢdᵢtᵢδᵈⁱ⁻¹τᵗⁱ⁻¹
+    // Polynomial terms (i=1 to i=7): ∂²(Σᵢ nᵢ·δᵈⁱ·τᵗⁱ)/∂δ∂τ = nᵢ·dᵢ·tᵢ·δᵈⁱ⁻¹·τᵗⁱ⁻¹
     for term in &RES_POLY_D1 {
         sum += term.n * (term.d as f64) * term.t * delta.powi(term.d - 1) * tau.powf(term.t - 1.0);
     }

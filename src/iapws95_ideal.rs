@@ -1,13 +1,19 @@
 //! IAPWS-95 Ideal Gas Part Implementation
 //!
 //! Implements the ideal gas part of the dimensionless Helmholtz free energy
-//! based on Equation 5 and Table 1,4 of IAPWS-95 Formulation 1995 (Revised 2018).
+//! based on Equation 5 and Tables 1, 4 of IAPWS-95 Formulation 1995 (Revised 2018).
+//!
+//! # Formula
+//!
+//! ```text
+//! φ°(δ,τ) = ln(δ) + n₁ + n₂τ + n₃ln(τ) + Σᵢ₌₄⁸ nᵢ·ln[1 - exp(-γᵢτ)]
+//! ```
 
 // ==========================================================================
 // COEFFICIENTS - Ideal Gas Part (Table 1 of IAPWS-95)
 // ==========================================================================
 
-/// n values from Table 1 of IAPWS-95 (i=1-8)
+/// n coefficients from Table 1 of IAPWS-95 (i=1-8)
 const IDEAL_N: [f64; 8] = [
     -8.3204464837497,   // n₁
      6.6832105275932,   // n₂
@@ -19,7 +25,7 @@ const IDEAL_N: [f64; 8] = [
      0.24873,           // n₈
 ];
 
-/// γ values for exponential terms (i=4-8)
+/// γ coefficients for exponential terms (i=4-8) from Table 4 of IAPWS-95
 const IDEAL_GAMMA: [f64; 5] = [
     1.28728967,        // γ₄ - for n₄
     3.53734222,        // γ₅ - for n₅
@@ -32,8 +38,12 @@ const IDEAL_GAMMA: [f64; 5] = [
 // IDEAL-GAS PART CALCULATIONS (Eq. 5 and Table 4 of IAPWS-95)
 // ==========================================================================
 
-/// Compute ideal-gas part of dimensionless Helmholtz free energy
-/// Eq. 5 : φ°(δ,τ) = ln(δ) + n₁ + n₂τ + n₃ln(τ) + Σᵢ₌₄⁸ nᵢln[1-exp(-γᵢτ)]
+/// Compute ideal-gas part of dimensionless Helmholtz free energy φ°(δ,τ)
+///
+/// # Formula
+/// ```text
+/// φ°(δ,τ) = ln(δ) + n₁ + n₂τ + n₃ln(τ) + Σᵢ₌₄⁸ nᵢ·ln[1 - exp(-γᵢτ)]
+/// ```
 pub fn phi_ideal(delta: f64, tau: f64) -> f64 {
     let mut sum = delta.ln(); // ln(δ) term
 
@@ -61,7 +71,7 @@ pub fn d2phi_ideal_ddelta2(delta: f64) -> f64 {
     -1.0 / (delta * delta)
 }
 
-/// Compute first derivative ∂φ°/∂τ = n₂ + n₃/τ + Σᵢ₌₄⁸ nᵢγᵢ*[(1/[1-exp(-γᵢτ)])-1]
+/// Compute first derivative ∂φ°/∂τ = n₂ + n₃/τ + Σᵢ₌₄⁸ nᵢγᵢ·[(1/[1-exp(-γᵢτ)]) - 1]
 pub fn dphi_ideal_dtau(tau: f64) -> f64 {
     let mut sum = IDEAL_N[1]; // n₂
     sum += IDEAL_N[2] / tau; // n₃/τ
@@ -76,7 +86,7 @@ pub fn dphi_ideal_dtau(tau: f64) -> f64 {
     sum
 }
 
-/// Compute second derivative ∂²φ°/∂τ² = -n₃/τ² - Σᵢ₌₄⁸ nᵢγᵢ²exp(-γᵢτ) / [1-exp(-γᵢτ)]²
+/// Compute second derivative ∂²φ°/∂τ² = -n₃/τ² - Σᵢ₌₄⁸ nᵢγᵢ²·exp(-γᵢτ) / [1-exp(-γᵢτ)]²
 pub fn d2phi_ideal_dtau2(tau: f64) -> f64 {
     let mut sum = -IDEAL_N[2] / (tau * tau); // -n₃/τ²
 
@@ -91,7 +101,7 @@ pub fn d2phi_ideal_dtau2(tau: f64) -> f64 {
     sum
 }
 
-/// Compute mixed derivative ∂²φ°/∂τ∂δ = 0 (ideal gas has no coupling)
+/// Compute mixed derivative ∂²φ°/∂τ∂δ = 0 (ideal gas has no δ-τ coupling)
 pub fn d2phi_ideal_dtaudelta(_delta: f64, _tau: f64) -> f64 {
     let _ = _delta;
     let _ = _tau;
