@@ -316,11 +316,11 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
     }
 
     // Exponential terms (i=23 to i=42): nᵢ exp(-δ²)[δᵈⁱ τᵗⁱ()] , c=2 fn error
+    let delta_2= delta *delta;
     for term in &RES_EXP_D2_C2 {
         let d = term.d as f64;
-        let delta_c= delta *delta;
-        let exp_term: f64 = (-delta_c).exp();
-        let d_term = delta.powi(term.d-2)*tau.powi(term.t)*((d -2.0*delta_c)*(d - 1.0-delta_c)-2.0*delta_c);
+        let exp_term: f64 = (-delta_2).exp();
+        let d_term = delta.powi(term.d-2)*tau.powi(term.t)*((d -2.0*delta_2)*(d - 1.0-delta_2)-2.0*delta_2);
         sum += term.n*exp_term*d_term;
        }
 
