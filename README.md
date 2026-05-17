@@ -263,7 +263,7 @@ The current test suite includes the following test cases:
 | Test File | Description | Dependencies |
 |------|------|------|
 | `td_free_energy.rs` | Verifies calculation accuracy of ideal gas and residual parts of Helmholtz free energy (based on Table 6 reference data) | `assert_approx_eq` |
-| `td_test.rs` | Verifies T-d-p equation of state calculation accuracy (based on Table 5 Region 1 reference data) | `assert_approx_eq` |
+| `td_test.rs` | Verifies T-d-p equation of state calculation accuracy (based on Table 7 reference data) | `assert_approx_eq` |
 
 ### Test Case Examples
 
