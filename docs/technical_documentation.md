@@ -321,41 +321,17 @@ Implements φʳ(δ, τ) and all its partial derivatives up to second order for t
 
 #### Functions
 
-##### `precompute_delta_powers!` (macro)
-
-A compile-time macro that precomputes all delta powers from δ⁰ to δ¹⁵ as a `[f64; 16]` array. This eliminates repeated `powi` calls across all residual functions.
-
-```rust
-let delta_powers = precompute_delta_powers!(delta);
-// delta_powers[0] = 1.0, delta_powers[1] = delta, delta_powers[2] = delta², ..., delta_powers[15] = delta¹⁵
-```
-
-The macro uses sequential multiplication (δ² = δ·δ, δ³ = δ²·δ, ...) which is more efficient than calling `powi` for each individual power. Functions that need specific powers (e.g., δ², δ³, δ⁴, δ⁶ for exponential terms) access them directly from the array.
-
-##### `precompute_tau_powers!` (macro)
-
-A compile-time macro that precomputes all tau powers from τ⁰ to τ⁵⁰ as a `[f64; 51]` array. This eliminates repeated `powf` calls across all residual functions.
-
-```rust
-let tau_powers = precompute_tau_powers!(tau);
-// tau_powers[0] = 1.0, tau_powers[1] = tau, tau_powers[2] = tau², ..., tau_powers[50] = tau⁵⁰
-```
-
-The macro uses sequential multiplication (τ² = τ·τ, τ³ = τ²·τ, ...) which is more efficient than calling `powf` for each individual power. Functions that need specific powers (e.g., τ⁴, τ¹⁰, τ⁵⁰ for exponential terms) access them directly from the array.
-
-**Note:** For second derivative calculations (∂²φʳ/∂τ²), terms with t < 2 are skipped since they contribute zero to the second derivative, avoiding index underflow when accessing `tau_powers[t_idx - 2]`.
-
 ##### `phi_residual(delta: f64, tau: f64) -> f64`
 
-Computes the full residual Helmholtz free energy by summing all 56 terms across all categories. Precomputes delta powers via `precompute_delta_powers!` and precomputes exponential factors (exp(−δ), exp(−δ²), exp(−δ³), exp(−δ⁴), exp(−δ⁶)) once per function call, reusing them across all terms in each category.
+Computes the full residual Helmholtz free energy by summing all 56 terms across all categories. Precomputes exponential factors (exp(−δ), exp(−δ²), exp(−δ³), exp(−δ⁴), exp(−δ⁶)) once per function call, reusing them across all terms in each category.
 
 ##### `dphi_residual_ddelta(delta: f64, tau: f64) -> f64`
 
-Computes ∂φʳ/∂δ using analytical derivatives of each term category. Uses precomputed delta powers and exponential factors for efficiency. For non-analytic terms, applies the chain rule to compute both the direct δ derivative and the indirect contribution through Δ(δ, τ).
+Computes ∂φʳ/∂δ using analytical derivatives of each term category. Precomputes exponential factors for efficiency. For non-analytic terms, applies the chain rule to compute both the direct δ derivative and the indirect contribution through Δ(δ, τ).
 
 ##### `d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64`
 
-Computes ∂²φʳ/∂δ² using analytical second derivatives for each term category. Uses precomputed delta powers and exponential factors. For terms where d < 2, falls back to `powi` for negative exponents:
+Computes ∂²φʳ/∂δ² using analytical second derivatives for each term category. Precomputes exponential factors. For terms where d < 2, uses `powi` for negative exponents:
 
 - **Polynomial terms**: nᵢ·dᵢ·(dᵢ−1)·δ^(dᵢ−2)·τ^tᵢ (terms with d < 2 contribute zero)
 - **Exponential terms (c=1)**: nᵢ·exp(−δ)·δ^(d−2)·τ^t·[(d−δ)(d−1−δ)−δ]
@@ -366,15 +342,15 @@ Computes ∂²φʳ/∂δ² using analytical second derivatives for each term cat
 
 ##### `dphi_residual_dtau(delta: f64, tau: f64) -> f64`
 
-Computes ∂φʳ/∂τ using analytical derivatives. Uses precomputed delta powers and exponential factors.
+Computes ∂φʳ/∂τ using analytical derivatives. Precomputes exponential factors.
 
 ##### `d2phi_residual_dtau2(delta: f64, tau: f64) -> f64`
 
-Computes ∂²φʳ/∂τ². Uses precomputed delta powers and exponential factors.
+Computes ∂²φʳ/∂τ². Precomputes exponential factors.
 
 ##### `d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64`
 
-Computes the mixed derivative ∂²φʳ/∂δ∂τ. Uses precomputed delta powers and exponential factors.
+Computes the mixed derivative ∂²φʳ/∂δ∂τ. Precomputes exponential factors.
 
 ---
 
@@ -682,29 +658,7 @@ pub fn calc_new_property(T: f64, rho: f64) -> f64 {
 
 ## 9. Performance Optimizations
 
-### 9.1 Delta Powers Precomputation
-
-All six residual functions use the `precompute_delta_powers!` macro to precompute δ⁰ through δ¹⁵ as a `[f64; 16]` array at the start of each function call. This eliminates repeated `powi` calls throughout the term evaluation loops.
-
-```rust
-let delta_powers = precompute_delta_powers!(delta);
-// Usage: delta_powers[term.d as usize] instead of delta.powi(term.d)
-```
-
-The macro uses sequential multiplication (δ² = δ·δ, δ³ = δ²·δ, ...), which is more efficient than calling `powi` for each individual power.
-
-### 9.2 Tau Powers Precomputation
-
-All residual functions also use the `precompute_tau_powers!` macro to precompute τ⁰ through τ⁵⁰ as a `[f64; 51]` array. This eliminates repeated `powf` calls, which are significantly more expensive than `powi` since they handle arbitrary floating-point exponents.
-
-```rust
-let tau_powers = precompute_tau_powers!(tau);
-// Usage: tau_powers[term.t as usize] instead of tau.powf(term.t)
-```
-
-The macro uses sequential multiplication (τ² = τ·τ, τ³ = τ²·τ, ...), providing a substantial performance improvement over calling `powf` for each term.
-
-### 9.3 Exponential Factor Reuse
+### 9.1 Exponential Factor Reuse
 
 Exponential factors are computed once per function call and reused across all terms in each category:
 
@@ -716,7 +670,7 @@ Exponential factors are computed once per function call and reused across all te
 | `exp(−δ⁴)` | c=4 exponential term (1 term) | `RES_EXP_D2_CN[4]` |
 | `exp(−δ⁶)` | c=6 exponential terms (4 terms) | `RES_EXP_D2_CN[5..9]` |
 
-### 9.4 Direct cp Calculation
+### 9.2 Direct cp Calculation
 
 The `calc_cp` function computes the isobaric heat capacity directly using the full formula rather than calling `calc_cv`. This avoids redundant evaluation of `d2phi_ideal_dtau2` and `d2phi_residual_dtau2`, which are expensive second-order derivative computations.
 
@@ -734,19 +688,15 @@ let denominator = 1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta
 IAPWS95_R * (cv_part + numerator / denominator)
 ```
 
-### 9.5 Negative Exponent Handling
+### 9.3 Negative Exponent Handling
 
-In `d2phi_residual_ddelta2`, terms with d < 2 require negative exponents (δ^(d−2)). The implementation uses a conditional check to fall back to `powi` for these cases while using the precomputed array for d ≥ 2:
+In `d2phi_residual_ddelta2`, terms with d < 2 require negative exponents (δ^(d−2)). The implementation uses `powi` directly for these cases:
 
 ```rust
-let delta_d_minus_2 = if term.d >= 2 {
-    delta_powers[(term.d - 2) as usize]
-} else {
-    delta.powi(term.d - 2)
-};
+let delta_d_minus_2 = delta.powi(term.d - 2);
 ```
 
-### 9.6 Compiler Optimizations
+### 9.4 Compiler Optimizations
 
 The project is configured with aggressive compiler optimizations for release builds:
 
@@ -773,17 +723,16 @@ Configuration in [.cargo/config.toml](../.cargo/config.toml):
 rustflags = ["-C", "target-cpu=native", "-C", "opt-level=3"]
 ```
 
-### 9.7 Performance Benchmarking
+### 9.5 Performance Benchmarking
 
 The library includes comprehensive performance benchmarks using Criterion.rs framework to measure and track the performance of all thermodynamic property calculations.
 
 #### Benchmark Structure
 
-The benchmark suite ([benches/iapws95_bench.rs](../benches/iapws95_bench.rs)) consists of three test groups:
+The benchmark suite ([benches/iapws95_bench.rs](../benches/iapws95_bench.rs)) consists of two test groups:
 
-1. **Single Properties** - Tests each property at 25°C, 997 kg/m³
-2. **Steam Properties** - Tests key properties at 500°C, 5 kg/m³
-3. **Multiple States** - Tests all properties across 5 different thermodynamic states
+1. **Properties** - Tests all properties across liquid, steam, and supercritical states
+2. **All Properties x 5 States** - Tests all properties across 5 different thermodynamic states
 
 #### Running Benchmarks
 

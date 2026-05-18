@@ -88,11 +88,6 @@ cargo test --test td_test    # Specific test
 | `td_test.rs`             | T-ρ-p equation of state (Table 7)            |
 | `T_saturation_table8.rs` | Saturation properties (Table 8)              |
 
-## Performance
-
-* **Computational Optimization**: Power Pre-computation: Use macros to calculate `δ⁰~δ¹⁵` and `τ⁰~τ⁵⁵` once at the function entry, avoiding repetitive calls to powi/powf. The exponential factor `exp(−δᶜ)` is calculated once per category and then reused.
-* **Compilation Optimization**: `opt-level=3`, `LTO`, and `target-cpu=native`
-
 ```bash
 cargo run --release --example benchmark
 ```
