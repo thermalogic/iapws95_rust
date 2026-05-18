@@ -90,7 +90,8 @@ cargo test --test td_test    # Specific test
 
 ## Performance
 
-幂次预计算优化：使用宏在函数入口处一次性计算 δ⁰~δ¹⁵ 和 τ⁰~τ⁵⁰，避免重复调用 `powi`/`powf`。指数因子 `exp(−δᶜ)` 按类别各计算一次后复用。配合 `opt-level=3`、LTO 和 `target-cpu=native` 编译优化。
+* **Computational Optimization**: Power Pre-computation: Use macros to calculate δ⁰~δ¹⁵ and τ⁰~τ⁵⁵ once at the function entry, avoiding repetitive calls to powi/powf. The exponential factor exp(−δᶜ) is calculated once per category and then reused.
+* **Compilation Optimization**: opt-level=3, LTO, and target-cpu=native
 
 ```bash
 cargo run --release --example benchmark
