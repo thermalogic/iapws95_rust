@@ -230,7 +230,7 @@ pub(crate) fn calc_isothermal_throttling(T: f64, rho: f64) -> f64 {
 /// β_s * ρ * R = (1 + δφ_δ - δτφʳ_δτ) / [(1 + δφʳ_δ - δτφʳ_δτ)² - τ²(φ°_ττ + φʳ_ττ)(1 + 2δφʳ_δ + δ²φʳ_δδ)]
 /// 
 /// Where:
-/// - δ = /ρc (reduced density)
+/// - δ = ρ/ρc (reduced density)
 /// - τ = Tc/T (inverse reduced temperature)
 /// - φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
 /// - φʳ_δδ = ∂²φ/∂δ² (second derivative w.r.t. δ)
