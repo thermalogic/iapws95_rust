@@ -35,6 +35,9 @@ let s    = tr2s(t_c, rho);        // Entropy (kJ/(kg·K))
 let cv   = tr2cv(t_c, rho);       // Constant-volume specific heat (kJ/(kg·K))
 let cp   = tr2cp(t_c, rho);       // Constant-pressure specific heat (kJ/(kg·K))
 let w    = tr2w(t_c, rho);        // Speed of sound (m/s)
+let mu   = tr2jt(t_c, rho);       // Joule-Thomson coefficient (K/MPa)
+let mu_T = tr2itt(t_c, rho);      // Isothermal throttling coefficient (dimensionless)
+let beta_s = tr2beta_s(t_c, rho); // Isentropic temperature-pressure coefficient (K/MPa)
 ```
 
 ## API Reference
@@ -52,6 +55,9 @@ All functions accept temperature in **Celsius** and density in kg/m³:
 | `tr2cv(t_c, rho)` | Constant-volume specific heat at T(°C), ρ(kg/m³)   | kJ/(kg·K) |
 | `tr2cp(t_c, rho)` | Constant-pressure specific heat at T(°C), ρ(kg/m³) | kJ/(kg·K) |
 | `tr2w(t_c, rho)`  | Speed of sound at T(°C), ρ(kg/m³)                  | m/s       |
+| `tr2jt(t_c, rho)` | Joule-Thomson coefficient at T(°C), ρ(kg/m³)       | K/MPa     |
+| `tr2itt(t_c, rho)`| Isothermal throttling coefficient at T(°C), ρ(kg/m³)| dimensionless |
+| `tr2beta_s(t_c, rho)` | Isentropic temperature-pressure coefficient at T(°C), ρ(kg/m³) | K/MPa |
 
 ### Saturation Properties
 

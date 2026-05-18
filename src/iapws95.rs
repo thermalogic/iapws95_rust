@@ -3,10 +3,11 @@
 //! Translated from iapws95.h
 //!
 //! # Public API
-//! - `tr2p`, `tr2u`, `tr2h`, `tr2s`, `tr2cv`, `tr2cp`, `tr2w` - Single-phase properties (T in °C, ρ in kg/m³)
+//! - `tr2p`, `tr2u`, `tr2h`, `tr2s`, `tr2cv`, `tr2cp`, `tr2w` -`tr2jt`- `tr2itt``- `tr2beta_s`- Single-phase properties (T in °C, ρ in kg/m³)
 //!
 //! # Internal Functions (pub(crate))
 //! - `calc_pressure`, `calc_internal_energy`, `calc_enthalpy`, `calc_entropy`, `calc_cv`, `calc_cp`, `calc_speed_of_sound`
+//! - `calc_joule_momson`, `calc_isothermal_throttling`, `calc_isentropic_temp_pressure`
 use crate::iapws95_ideal::*;
 use crate::iapws95_residual::*;
 
@@ -150,6 +151,105 @@ pub(crate) fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
     (w_squared * 1000.0).sqrt()
 }
 
+/// Compute Joule-Thomson coefficient: μ = (∂T/∂p)_H [K/MPa]
+/// 
+/// Based on IAPWS-95 Table 3 relations:
+/// μ = [-(δφʳ_δ + δ²φʳ_δδ + 2τδ²φʳ_δτ)] / [ρR((1 + δφʳ_δ - δτφʳ_δτ)² - τ²(φ°_ττ + φʳ_ττ)(1 + 2δφʳ_δ + δ²φʳ_δδ))]
+/// 
+/// Where:
+/// - δ = ρ/ρc (reduced density)
+/// - τ = Tc/T (inverse reduced temperature)
+/// - φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
+/// - φʳ_δδ = ∂²φʳ/∂δ² (second derivative w.r.t. δ)
+/// - φʳ_δτ = ∂²φʳ/∂δ∂τ (mixed second derivative)
+/// - φ°_ττ = ∂²φ°/∂τ² (second derivative of ideal gas Helmholtz free energy w.r.t. τ)
+/// - φʳ_ττ = ∂²φʳ/∂τ² (second derivative of residual Helmholtz free energy w.r.t. τ)
+pub(crate) fn calc_joule_thomson(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+    
+    let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
+    let d2phi_r_ddelta2 = d2phi_residual_ddelta2(delta, tau);
+    let d2phi_r_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
+    let d2phi_o_dtau2 = d2phi_ideal_dtau2(tau);
+    let d2phi_r_dtau2 = d2phi_residual_dtau2(delta, tau);
+    
+    // Numerator: -(δφʳ_δ + δ²φʳ_δδ + 2τδ²φʳ_δτ)
+    let numerator = -(delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2 
+                     + 2.0 * tau * delta * delta * d2phi_r_ddelta_dtau);
+    
+    // Denominator: ρR[(1 + δφʳ_δ - δτφʳ_δτ)² - τ²(φ°_ττ + φʳ_ττ)(1 + 2δφʳ_δ + δ²φʳ_δδ)]
+    let term1 = 1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
+    let term2 = 1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2;
+    let denominator = rho * IAPWS95_R * (term1 * term1 - tau * tau * (d2phi_o_dtau2 + d2phi_r_dtau2) * term2);
+    
+    numerator / denominator
+}
+
+/// Compute Isothermal throttling coefficient: (∂τ/∂p)_T
+/// 
+/// Based on IAPWS-95 Table 3 relations:
+/// (∂τ/∂p)_T = 1-(1 + δφʳ_δ - δτφʳ_δτ) / (1 + 2δφʳ_δ + δ²φʳ_δδ)
+/// 
+/// Where:
+/// - δ = ρ/ρc (reduced density)
+/// - τ = Tc/T (inverse reduced temperature)
+/// - φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
+/// - φʳ_δδ = ∂²φʳ/∂δ² (second derivative w.r.t. δ)
+/// - φʳ_δτ = ∂²φʳ/∂δ∂τ (mixed second derivative)
+pub(crate) fn calc_isothermal_throttling(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+    
+    let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
+    let d2phi_r_ddelta2 = d2phi_residual_ddelta2(delta, tau);
+    let d2phi_r_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
+    
+    // Numerator: 1 + δφʳ_δ - δτφʳ_δτ
+    let numerator = 1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
+    
+    // Denominator: 1 + 2δφʳ_δ + δ²φʳ_δδ
+    let denominator = 1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2;
+    
+    // (∂τ/p)_T = 1 - (1 + δφʳ_δ - δτφʳ_δτ) / (1 + 2δφ_δ + δ²φʳ_δδ)
+    1.0 - (numerator / denominator)
+}
+
+/// Compute Isentropic temperature-pressure coefficient: β_s = (∂T/∂p)_s
+/// 
+/// Based on IAPWS-95 Table 3 relations:
+/// β_s * ρ * R = (1 + δφ_δ - δτφʳ_δτ) / [(1 + δφʳ_δ - δτφʳ_δτ)² - τ²(φ°_ττ + φʳ_ττ)(1 + 2δφʳ_δ + δ²φʳ_δδ)]
+/// 
+/// Where:
+/// - δ = /ρc (reduced density)
+/// - τ = Tc/T (inverse reduced temperature)
+/// - φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
+/// - φʳ_δδ = ∂²φ/∂δ² (second derivative w.r.t. δ)
+/// - φʳ_δτ = ∂²φʳ/∂δτ (mixed second derivative)
+/// - φ°_ττ = ∂²φ°/∂τ² (second derivative of ideal gas Helmholtz free energy w.r.t. τ)
+/// - φʳ_ττ = ∂²φʳ/∂τ² (second derivative of residual Helmholtz free energy w.r.t. τ)
+pub(crate) fn calc_isentropic_temp_pressure(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+    
+    let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
+    let d2phi_r_ddelta2 = d2phi_residual_ddelta2(delta, tau);
+    let d2phi_r_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
+    let d2phi_o_dtau2 = d2phi_ideal_dtau2(tau);
+    let d2phi_r_dtau2 = d2phi_residual_dtau2(delta, tau);
+    
+    // Numerator: 1 + δφʳ_δ - δτφʳ_δτ
+    let numerator = 1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
+    
+    // Denominator: (1 + δφʳ_δ - δτφʳ_δτ)² - τ²(φ°_ττ + φʳ_ττ)(1 + 2δφʳ_δ + δ²φʳ_δδ)
+    let term1 = 1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
+    let term2 = 1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2;
+    let denominator = (term1 * term1) - tau * tau * (d2phi_o_dtau2 + d2phi_r_dtau2) * term2;
+    
+    // β_s = numerator / (ρ * R * denominator)
+    numerator / (rho * IAPWS95_R * denominator)
+}
+
 // ==========================================================================
 // Main API Functions
 // ==========================================================================
@@ -204,4 +304,22 @@ pub fn tr2cp(t_c: f64, rho: f64) -> f64 {
 pub fn tr2w(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_speed_of_sound(t_k, rho)
+}
+
+/// Calculate Joule-Thomson coefficient at given temperature (°C) and density \[K/MPa\]
+pub fn tr2jt(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_joule_thomson(t_k, rho)
+}
+
+/// Calculate Isothermal throttling coefficient at given temperature (°C) and density \[kJ/(kg·MPa)\]
+pub fn tr2itt(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_isothermal_throttling(t_k, rho)
+}
+
+/// Calculate Isentropic temperature-pressure coefficient at given temperature (°C) and density \[K/MPa\]
+pub fn tr2beta_s(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_isentropic_temp_pressure(t_k, rho)
 }

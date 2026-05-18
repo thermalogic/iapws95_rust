@@ -111,6 +111,9 @@ All properties are derived from φ and its partial derivatives (IAPWS-95 Table 3
 | Isochoric heat capacity cv | −R·τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²) | kJ/(kg·K) |
 | Isobaric heat capacity cp | cv + R·N²/D | kJ/(kg·K) |
 | Speed of sound w | √[R·T·(1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ² − N²/(τ²·∂²φ/∂τ²))] · √1000 | m/s |
+| Joule-Thomson coefficient μ | [−(δφʳ_δ + δ²φʳ_δδ + 2τδ²φʳ_δτ)] / [ρR((1 + δφʳ_δ − δτφʳ_δτ)² − τ²(φ°_ττ + φ_ττ)(1 + 2δφ_δ + δ²φʳ_δδ))] | K/MPa |
+| Isothermal throttling coefficient (∂τ/∂p)_T | 1 − (1 + δφʳ_δ − δτφʳ_δτ) / (1 + 2δφʳ_δ + δ²φʳ_δδ) | dimensionless |
+| Isentropic temperature-pressure coefficient β_s | (1 + δφʳ_δ − δτφʳ_δτ) / [ρR((1 + δφʳ_δ − δτφʳ_δτ)² − τ²(φ°_ττ + φʳ_ττ)(1 + 2δφʳ_δ + δ²φʳ_δδ))] | K/MPa |
 
 Where:
 ```
@@ -238,6 +241,9 @@ These functions are `pub(crate)` and used internally by the `tr2*` convenience f
 | `calc_cv(T, rho)` | cv at T(K), ρ |
 | `calc_cp(T, rho)` | cp at T(K), ρ |
 | `calc_speed_of_sound(T, rho)` | Speed of sound at T(K), ρ |
+| `calc_joule_thomson(T, rho)` | Joule-Thomson coefficient at T(K), ρ |
+| `calc_isothermal_throttling(T, rho)` | Isothermal throttling coefficient at T(K), ρ |
+| `calc_isentropic_temp_pressure(T, rho)` | Isentropic temperature-pressure coefficient at T(K), ρ |
 
 #### Range Check
 
