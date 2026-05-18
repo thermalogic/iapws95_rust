@@ -21,7 +21,7 @@ crate-type = ["rlib"]
 
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.5.1", features = ["html_reports"] }
 
 # ==========================================================================
 # Build Profiles
@@ -34,3 +34,7 @@ codegen-units = 1
 
 [profile.release.build-override]
 opt-level = 0
+
+[[bench]]
+name = "iapws95_bench"
+harness = false
