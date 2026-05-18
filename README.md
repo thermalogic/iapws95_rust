@@ -2,24 +2,6 @@
 
 A Rust implementation of the [IAPWS-95](https://iapws.org/documents/release/IAPWS-95/) standard for calculating thermodynamic properties of water and steam.
 
-## Project Structure
-
-```
-iapws95_rust/
-├── src/
-│   ├── lib.rs                # Library entry point
-│   ├── iapws95.rs            # Main module: constants & API functions
-│   ├── iapws95_ideal.rs      # Ideal gas part (φ°)
-│   ├── iapws95_residual.rs   # Residual part (φʳ)
-│   └── iapws95_saturation.rs # Saturation properties
-├── examples/
-│   └── basic_usage.rs
-└── tests/
-    ├── td_free_energy.rs     # Helmholtz free energy verification
-    ├── td_test.rs            # T-ρ-p equation of state test
-    └── T_saturation_table8.rs # Saturation properties test
-```
-
 ## Quick Start
 
 ### Installation
