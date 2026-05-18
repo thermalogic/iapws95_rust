@@ -50,7 +50,7 @@ fn test_comparison_pt_95_vs_97() {
         let cp_if97 = pt(p, t_c, OCP);
         let cv_if97 = pt(p, t_c, OCV);
         let w_if97 = pt(p, t_c, OW);
-        let mu_if97 = pt(p, t_c, OJTC);
+       // let mu_if97 = pt(p, t_c, OJTC);
         
         // Step 4: Get properties from IAPWS-95 using density
         let h_95 = tr2h(t_c, rho);
