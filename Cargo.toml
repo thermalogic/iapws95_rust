@@ -22,6 +22,7 @@ crate-type = ["rlib"]
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
 criterion = { version = "0.8.2", features = ["html_reports"] }
+seuif97 = "1.0"
 
 # ==========================================================================
 # Build Profiles

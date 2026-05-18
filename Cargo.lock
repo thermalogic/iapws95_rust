@@ -243,6 +243,7 @@ version = "0.1.8"
 dependencies = [
  "assert_approx_eq",
  "criterion",
+ "seuif97",
 ]
 
 [[package]]
@@ -473,6 +474,12 @@ dependencies = [
  "serde_core",
  "zmij",
 ]
+
+[[package]]
+name = "seuif97"
+version = "1.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "099417f3a2dc63e260f1685446d2abfb39cc24cfd18624e6628a55becfae830f"
 
 [[package]]
 name = "shlex"
