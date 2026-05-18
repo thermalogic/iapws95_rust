@@ -63,6 +63,7 @@ const IDEAL_GAMMA: [f64; 5] = [
 /// ```text
 /// φ°(δ,τ) = ln(δ) + n₁ + n₂τ + n₃ln(τ) + Σᵢ₌₄⁸ nᵢ·ln[1 - exp(-γᵢτ)]
 /// ```
+#[inline]
 pub fn phi_ideal(delta: f64, tau: f64) -> f64 {
     let mut sum = delta.ln(); // ln(δ) term
 
@@ -81,16 +82,19 @@ pub fn phi_ideal(delta: f64, tau: f64) -> f64 {
 }
 
 /// Compute first derivative ∂φ°/∂δ = 1/δ
+#[inline]
 pub fn dphi_ideal_ddelta(delta: f64) -> f64 {
     1.0 / delta
 }
 
 /// Compute second derivative ∂²φ°/∂δ² = -1/δ²
+#[inline]
 pub fn d2phi_ideal_ddelta2(delta: f64) -> f64 {
     -1.0 / (delta * delta)
 }
 
 /// Compute first derivative ∂φ°/∂τ = n₂ + n₃/τ + Σᵢ₌₄⁸ nᵢγᵢ·[(1/[1-exp(-γᵢτ)]) - 1]
+#[inline]
 pub fn dphi_ideal_dtau(tau: f64) -> f64 {
     let mut sum = IDEAL_N[1]; // n₂
     sum += IDEAL_N[2] / tau; // n₃/τ
@@ -106,6 +110,7 @@ pub fn dphi_ideal_dtau(tau: f64) -> f64 {
 }
 
 /// Compute second derivative ∂²φ°/∂τ² = -n₃/τ² - Σᵢ₌₄⁸ nᵢγᵢ²·exp(-γᵢτ) / [1-exp(-γᵢτ)]²
+#[inline]
 pub fn d2phi_ideal_dtau2(tau: f64) -> f64 {
     let mut sum = -IDEAL_N[2] / (tau * tau); // -n₃/τ²
 
@@ -121,6 +126,7 @@ pub fn d2phi_ideal_dtau2(tau: f64) -> f64 {
 }
 
 /// Compute mixed derivative ∂²φ°/∂τ∂δ = 0 (ideal gas has no δ-τ coupling)
+#[inline]
 pub fn d2phi_ideal_dtaudelta(_delta: f64, _tau: f64) -> f64 {
     let _ = _delta;
     let _ = _tau;

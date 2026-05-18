@@ -39,6 +39,70 @@ macro_rules! precompute_delta_powers {
     }};
 }
 
+/// Macro to precompute tau powers up to 50 (max t exponent used)
+/// Returns an array [1.0, tau, tau^2, ..., tau^50]
+macro_rules! precompute_tau_powers {
+    ($tau:ident) => {{
+        let tau_2 = $tau * $tau;
+        let tau_3 = tau_2 * $tau;
+        let tau_4 = tau_3 * $tau;
+        let tau_5 = tau_4 * $tau;
+        let tau_6 = tau_5 * $tau;
+        let tau_7 = tau_6 * $tau;
+        let tau_8 = tau_7 * $tau;
+        let tau_9 = tau_8 * $tau;
+        let tau_10 = tau_9 * $tau;
+        let tau_11 = tau_10 * $tau;
+        let tau_12 = tau_11 * $tau;
+        let tau_13 = tau_12 * $tau;
+        let tau_14 = tau_13 * $tau;
+        let tau_15 = tau_14 * $tau;
+        let tau_16 = tau_15 * $tau;
+        let tau_17 = tau_16 * $tau;
+        let tau_18 = tau_17 * $tau;
+        let tau_19 = tau_18 * $tau;
+        let tau_20 = tau_19 * $tau;
+        let tau_21 = tau_20 * $tau;
+        let tau_22 = tau_21 * $tau;
+        let tau_23 = tau_22 * $tau;
+        let tau_24 = tau_23 * $tau;
+        let tau_25 = tau_24 * $tau;
+        let tau_26 = tau_25 * $tau;
+        let tau_27 = tau_26 * $tau;
+        let tau_28 = tau_27 * $tau;
+        let tau_29 = tau_28 * $tau;
+        let tau_30 = tau_29 * $tau;
+        let tau_31 = tau_30 * $tau;
+        let tau_32 = tau_31 * $tau;
+        let tau_33 = tau_32 * $tau;
+        let tau_34 = tau_33 * $tau;
+        let tau_35 = tau_34 * $tau;
+        let tau_36 = tau_35 * $tau;
+        let tau_37 = tau_36 * $tau;
+        let tau_38 = tau_37 * $tau;
+        let tau_39 = tau_38 * $tau;
+        let tau_40 = tau_39 * $tau;
+        let tau_41 = tau_40 * $tau;
+        let tau_42 = tau_41 * $tau;
+        let tau_43 = tau_42 * $tau;
+        let tau_44 = tau_43 * $tau;
+        let tau_45 = tau_44 * $tau;
+        let tau_46 = tau_45 * $tau;
+        let tau_47 = tau_46 * $tau;
+        let tau_48 = tau_47 * $tau;
+        let tau_49 = tau_48 * $tau;
+        let tau_50 = tau_49 * $tau;
+        [
+            1.0, $tau, tau_2, tau_3, tau_4, tau_5, tau_6, tau_7, tau_8, tau_9,
+            tau_10, tau_11, tau_12, tau_13, tau_14, tau_15, tau_16, tau_17, tau_18, tau_19,
+            tau_20, tau_21, tau_22, tau_23, tau_24, tau_25, tau_26, tau_27, tau_28, tau_29,
+            tau_30, tau_31, tau_32, tau_33, tau_34, tau_35, tau_36, tau_37, tau_38, tau_39,
+            tau_40, tau_41, tau_42, tau_43, tau_44, tau_45, tau_46, tau_47, tau_48, tau_49,
+            tau_50,
+        ]
+    }};
+}
+
 // ==========================================================================
 // COEFFICIENTS - Residual Part (Table 5 of IAPWS-95)
 // ==========================================================================
@@ -193,10 +257,12 @@ fn gauss_exp(term: &GaussTerm, delta: f64, tau: f64) -> f64 {
 ///
 /// Sums all 56 terms across four categories: polynomial (7), exponential (44),
 /// Gaussian (3), and non-analytic (2).
+#[inline]
 pub fn phi_residual(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
     let delta_powers = precompute_delta_powers!(delta);
+    let tau_powers = precompute_tau_powers!(tau);
     let delta_2 = delta_powers[2];
     let delta_3 = delta_powers[3];
     let delta_4 = delta_powers[4];
@@ -210,13 +276,13 @@ pub fn phi_residual(delta: f64, tau: f64) -> f64 {
     // Exponential terms (i=8 to 22): Σᵢ nᵢδᵈⁱτᵗⁱexp(-δ) c=1
     let exp_delta = (-delta).exp();
     for term in &RES_EXP_D2_C1 {
-        sum += term.n * delta_powers[term.d as usize] * tau.powi(term.t) * exp_delta;
+        sum += term.n * delta_powers[term.d as usize] * tau_powers[term.t as usize] * exp_delta;
     }
 
     // Exponential terms (i=23 to 42): Σᵢ nᵢδᵈⁱτᵗⁱexp(-δ*δ) c=2
     let exp_delta_2 = (-delta_2).exp();
     for term in &RES_EXP_D2_C2 {
-        sum += term.n * delta_powers[term.d as usize] * tau.powi(term.t) * exp_delta_2;
+        sum += term.n * delta_powers[term.d as usize] * tau_powers[term.t as usize] * exp_delta_2;
     }
 
     // Exponential terms (i=43 to 51): Σᵢ nᵢδᵈⁱτᵗⁱexp(-δᶜⁱ) c=3,4,6
@@ -226,21 +292,21 @@ pub fn phi_residual(delta: f64, tau: f64) -> f64 {
 
     // c=3 terms (i=43 to i=46)
     for term in &RES_EXP_D2_CN[0..4] {
-        sum += term.n * delta_powers[term.d as usize] * tau.powi(term.t) * exp_delta_3;
+        sum += term.n * delta_powers[term.d as usize] * tau_powers[term.t as usize] * exp_delta_3;
     }
 
     // c=4 term (i=47)
     let term = &RES_EXP_D2_CN[4];
-    sum += term.n * delta_powers[term.d as usize] * tau.powi(term.t) * exp_delta_4;
+    sum += term.n * delta_powers[term.d as usize] * tau_powers[term.t as usize] * exp_delta_4;
 
     // c=6 terms (i=48 to i=51)
     for term in &RES_EXP_D2_CN[5..9] {
-        sum += term.n * delta_powers[term.d as usize] * tau.powi(term.t) * exp_delta_6;
+        sum += term.n * delta_powers[term.d as usize] * tau_powers[term.t as usize] * exp_delta_6;
     }
 
     // Gaussian terms (i=52 to i=54): Σᵢ nᵢδᵈⁱτᵗⁱexp[-αᵢ(δ-εᵢ)²-βᵢ(τ-γᵢ)²]
     for term in &RES_GAUSS {
-        sum += term.n * delta_powers[term.d as usize] * tau.powi(term.t) * gauss_exp(term, delta, tau);
+        sum += term.n * delta_powers[term.d as usize] * tau_powers[term.t as usize] * gauss_exp(term, delta, tau);
     }
 
     // Non-analytic terms (i=55 to i=56): Σᵢ nᵢΔᵇⁱδF(δ,τ)
@@ -261,10 +327,12 @@ pub fn phi_residual(delta: f64, tau: f64) -> f64 {
 ///
 /// Applies analytical derivatives to each term category. For non-analytic terms,
 /// applies the chain rule to compute both direct δ derivative and indirect contribution through Δ(δ,τ).
+#[inline]
 pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
     let delta_powers = precompute_delta_powers!(delta);
+    let tau_powers = precompute_tau_powers!(tau);
     let delta_2 = delta_powers[2];
     let delta_3 = delta_powers[3];
     let delta_4 = delta_powers[4];
@@ -279,14 +347,14 @@ pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
     let exp_delta = (-delta).exp();
     for term in &RES_EXP_D2_C1 {
         let deriv = (term.d as f64) - delta;
-        sum += term.n * exp_delta * delta_powers[(term.d - 1) as usize] * tau.powi(term.t) * deriv;
+        sum += term.n * exp_delta * delta_powers[(term.d - 1) as usize] * tau_powers[term.t as usize] * deriv;
     }
 
     // Exponential terms (i=23 to i=42): c=2 ∂(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δ²))/∂δ
     let exp_delta_2 = (-delta_2).exp();
     for term in &RES_EXP_D2_C2 {
         let deriv = (term.d as f64) - 2.0 * delta_2;
-        sum += term.n * exp_delta_2 * delta_powers[(term.d - 1) as usize] * tau.powi(term.t) * deriv;
+        sum += term.n * exp_delta_2 * delta_powers[(term.d - 1) as usize] * tau_powers[term.t as usize] * deriv;
     }
 
     // Exponential terms (i=43 to i=51): c=3,4,6 ∂(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δᶜⁱ))/∂δ
@@ -295,21 +363,21 @@ pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
     let exp_delta_6 = (-delta_6).exp();
     for term in &RES_EXP_D2_CN[0..4] {
         let deriv = (term.d as f64) - 3.0 * delta_3;
-        sum += term.n * exp_delta_3 * delta_powers[(term.d - 1) as usize] * tau.powi(term.t) * deriv;
+        sum += term.n * exp_delta_3 * delta_powers[(term.d - 1) as usize] * tau_powers[term.t as usize] * deriv;
     }
     let term = &RES_EXP_D2_CN[4];
     let deriv = (term.d as f64) - 4.0 * delta_4;
-    sum += term.n * exp_delta_4 * delta_powers[(term.d - 1) as usize] * tau.powi(term.t) * deriv;
+    sum += term.n * exp_delta_4 * delta_powers[(term.d - 1) as usize] * tau_powers[term.t as usize] * deriv;
     for term in &RES_EXP_D2_CN[5..9] {
         let deriv = (term.d as f64) - 6.0 * delta_6;
-        sum += term.n * exp_delta_6 * delta_powers[(term.d - 1) as usize] * tau.powi(term.t) * deriv;
+        sum += term.n * exp_delta_6 * delta_powers[(term.d - 1) as usize] * tau_powers[term.t as usize] * deriv;
     }
 
     // Gaussian terms (i=1 to i=3): ∂(Σᵢ nᵢδᵈⁱτᵗⁱexp[-αᵢ(δ-εᵢ)²-βᵢ(τ-γᵢ)²])/∂δ
     for term in &RES_GAUSS {
         let exp_term = gauss_exp(term, delta, tau);
         let deriv = (term.d as f64) / delta - 2.0 * (term.a as f64) * (delta - term.e as f64);
-        sum += term.n * delta_powers[term.d as usize] * tau.powi(term.t) * exp_term * deriv;
+        sum += term.n * delta_powers[term.d as usize] * tau_powers[term.t as usize] * exp_term * deriv;
     }
 
     // Non-analytic terms (i=1 to i=2): ∂(Σᵢ nᵢΔᵇⁱδF)/∂δ
@@ -341,10 +409,12 @@ pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
 }
 
 /// Compute second derivative ∂²φʳ/∂δ² for residual part
+#[inline]
 pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
     let delta_powers = precompute_delta_powers!(delta);
+    let tau_powers = precompute_tau_powers!(tau);
     let delta_2 = delta_powers[2];
     let delta_3 = delta_powers[3];
     let delta_4 = delta_powers[4];
@@ -368,7 +438,7 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
         } else {
             delta.powi(term.d - 2)
         };
-        let d_term = delta_d_minus_2 * tau.powi(term.t) * ((d - delta) * (d - 1.0 - delta) - delta);
+        let d_term = delta_d_minus_2 * tau_powers[term.t as usize] * ((d - delta) * (d - 1.0 - delta) - delta);
         sum += term.n * exp_delta * d_term;
     }
 
@@ -381,7 +451,7 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
         } else {
             delta.powi(term.d - 2)
         };
-        let d_term = delta_d_minus_2 * tau.powi(term.t) * ((d - 1.0 - 2.0 * delta_2) * (d - 2.0 * delta_2) - 4.0 * delta_2);
+        let d_term = delta_d_minus_2 * tau_powers[term.t as usize] * ((d - 1.0 - 2.0 * delta_2) * (d - 2.0 * delta_2) - 4.0 * delta_2);
         sum += term.n * exp_delta_2 * d_term;
     }
 
@@ -396,7 +466,7 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
         } else {
             delta.powi(term.d - 2)
         };
-        let d_term = delta_d_minus_2 * tau.powi(term.t) * ((d - 1.0 - 3.0 * delta_3) * (d - 3.0 * delta_3) - 9.0 * delta_3);
+        let d_term = delta_d_minus_2 * tau_powers[term.t as usize] * ((d - 1.0 - 3.0 * delta_3) * (d - 3.0 * delta_3) - 9.0 * delta_3);
         sum += term.n * exp_delta_3 * d_term;
     }
     let term = &RES_EXP_D2_CN[4];
@@ -406,7 +476,7 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
     } else {
         delta.powi(term.d - 2)
     };
-    let d_term = delta_d_minus_2 * tau.powi(term.t) * ((d - 1.0 - 4.0 * delta_4) * (d - 4.0 * delta_4) - 16.0 * delta_4);
+    let d_term = delta_d_minus_2 * tau_powers[term.t as usize] * ((d - 1.0 - 4.0 * delta_4) * (d - 4.0 * delta_4) - 16.0 * delta_4);
     sum += term.n * exp_delta_4 * d_term;
     for term in &RES_EXP_D2_CN[5..9] {
         let d = term.d as f64;
@@ -415,7 +485,7 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
         } else {
             delta.powi(term.d - 2)
         };
-        let d_term = delta_d_minus_2 * tau.powi(term.t) * ((d - 1.0 - 6.0 * delta_6) * (d - 6.0 * delta_6) - 36.0 * delta_6);
+        let d_term = delta_d_minus_2 * tau_powers[term.t as usize] * ((d - 1.0 - 6.0 * delta_6) * (d - 6.0 * delta_6) - 36.0 * delta_6);
         sum += term.n * exp_delta_6 * d_term;
     }
 
@@ -436,7 +506,7 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
         let second_deriv_correction = -d / delta_2 - 2.0 * a;
         let factor = first_deriv_factor * first_deriv_factor + second_deriv_correction;
 
-        let contrib = term.n * delta_powers[term.d as usize] * tau.powi(term.t) * exp_term * factor;
+        let contrib = term.n * delta_powers[term.d as usize] * tau_powers[term.t as usize] * exp_term * factor;
         sum += contrib;
     }
 
@@ -495,10 +565,12 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
 }
 
 /// Compute first derivative ∂φʳ/∂τ for residual part
+#[inline]
 pub fn dphi_residual_dtau(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
     let delta_powers = precompute_delta_powers!(delta);
+    let tau_powers = precompute_tau_powers!(tau);
     let delta_2 = delta_powers[2];
     let delta_3 = delta_powers[3];
     let delta_4 = delta_powers[4];
@@ -512,15 +584,15 @@ pub fn dphi_residual_dtau(delta: f64, tau: f64) -> f64 {
     // Exponential terms (i=8 to i=22): c=1 ∂(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δ))/∂τ
     let exp_delta = (-delta).exp();
     for term in &RES_EXP_D2_C1 {
-        sum += term.n * (term.t as f64) * delta_powers[term.d as usize] * tau.powf((term.t - 1) as f64)
-            * exp_delta;
+        let t = term.t as usize;
+        sum += term.n * (term.t as f64) * delta_powers[term.d as usize] * tau_powers[t - 1] * exp_delta;
     }
 
     // Exponential terms (i=23 to i=42): c=2 ∂(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δ²))/∂τ
     let exp_delta_2 = (-delta_2).exp();
     for term in &RES_EXP_D2_C2 {
-        sum += term.n * (term.t as f64) * delta_powers[term.d as usize] * tau.powf((term.t - 1) as f64)
-            * exp_delta_2;
+        let t = term.t as usize;
+        sum += term.n * (term.t as f64) * delta_powers[term.d as usize] * tau_powers[t - 1] * exp_delta_2;
     }
 
     // Exponential terms (i=43 to i=51): c=3,4,6 ∂(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δᶜ))/∂τ
@@ -528,22 +600,22 @@ pub fn dphi_residual_dtau(delta: f64, tau: f64) -> f64 {
     let exp_delta_4 = (-delta_4).exp();
     let exp_delta_6 = (-delta_6).exp();
     for term in &RES_EXP_D2_CN[0..4] {
-        sum += term.n * (term.t as f64) * delta_powers[term.d as usize] * tau.powf((term.t - 1) as f64)
-            * exp_delta_3;
+        let t = term.t as usize;
+        sum += term.n * (term.t as f64) * delta_powers[term.d as usize] * tau_powers[t - 1] * exp_delta_3;
     }
     let term = &RES_EXP_D2_CN[4];
-    sum += term.n * (term.t as f64) * delta_powers[term.d as usize] * tau.powf((term.t - 1) as f64)
-        * exp_delta_4;
+    let t = term.t as usize;
+    sum += term.n * (term.t as f64) * delta_powers[term.d as usize] * tau_powers[t - 1] * exp_delta_4;
     for term in &RES_EXP_D2_CN[5..9] {
-        sum += term.n * (term.t as f64) * delta_powers[term.d as usize] * tau.powf((term.t - 1) as f64)
-            * exp_delta_6;
+        let t = term.t as usize;
+        sum += term.n * (term.t as f64) * delta_powers[term.d as usize] * tau_powers[t - 1] * exp_delta_6;
     }
 
     // Gaussian terms (i=1 to i=3): ∂(Σᵢ nᵢδᵈⁱτᵗⁱexp[-αᵢ(δ-εᵢ)²-βᵢ(τ-γᵢ)²])/∂τ
     for term in &RES_GAUSS {
         let exp_term = gauss_exp(term, delta, tau);
         let deriv = (term.t as f64) / tau - 2.0 * (term.b as f64) * (tau - term.g);
-        sum += term.n * delta_powers[term.d as usize] * tau.powi(term.t) * exp_term * deriv;
+        sum += term.n * delta_powers[term.d as usize] * tau_powers[term.t as usize] * exp_term * deriv;
     }
 
     // Non-analytic terms (i=1 to i=2): ∂(Σᵢ nᵢΔᵇⁱδF)/∂τ
@@ -572,10 +644,12 @@ pub fn dphi_residual_dtau(delta: f64, tau: f64) -> f64 {
 }
 
 /// Compute second derivative ∂²φʳ/∂τ² for residual part
+#[inline]
 pub fn d2phi_residual_dtau2(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
     let delta_powers = precompute_delta_powers!(delta);
+    let tau_powers = precompute_tau_powers!(tau);
     let delta_2 = delta_powers[2];
     let delta_3 = delta_powers[3];
     let delta_4 = delta_powers[4];
@@ -591,14 +665,20 @@ pub fn d2phi_residual_dtau2(delta: f64, tau: f64) -> f64 {
     let exp_delta = (-delta).exp();
     for term in &RES_EXP_D2_C1 {
         let t = term.t as f64;
-        sum += term.n * t * (t - 1.0) * delta_powers[term.d as usize] * tau.powf(t - 2.0) * exp_delta;
+        if term.t >= 2 {
+            let t_idx = term.t as usize;
+            sum += term.n * t * (t - 1.0) * delta_powers[term.d as usize] * tau_powers[t_idx - 2] * exp_delta;
+        }
     }
 
     // Exponential terms (i=23 to i=42): c=2 ∂²(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δ²))/∂τ²
     let exp_delta_2 = (-delta_2).exp();
     for term in &RES_EXP_D2_C2 {
         let t = term.t as f64;
-        sum += term.n * t * (t - 1.0) * delta_powers[term.d as usize] * tau.powf(t - 2.0) * exp_delta_2;
+        if term.t >= 2 {
+            let t_idx = term.t as usize;
+            sum += term.n * t * (t - 1.0) * delta_powers[term.d as usize] * tau_powers[t_idx - 2] * exp_delta_2;
+        }
     }
 
     // Exponential terms (i=43 to i=51): ∂²(Σᵢ nᵢδᵈⁱτᵗⁱexp(-δᶜ))/∂τ²
@@ -607,14 +687,23 @@ pub fn d2phi_residual_dtau2(delta: f64, tau: f64) -> f64 {
     let exp_delta_6 = (-delta_6).exp();
     for term in &RES_EXP_D2_CN[0..4] {
         let t = term.t as f64;
-        sum += term.n * t * (t - 1.0) * delta_powers[term.d as usize] * tau.powf(t - 2.0) * exp_delta_3;
+        if term.t >= 2 {
+            let t_idx = term.t as usize;
+            sum += term.n * t * (t - 1.0) * delta_powers[term.d as usize] * tau_powers[t_idx - 2] * exp_delta_3;
+        }
     }
     let term = &RES_EXP_D2_CN[4];
     let t = term.t as f64;
-    sum += term.n * t * (t - 1.0) * delta_powers[term.d as usize] * tau.powf(t - 2.0) * exp_delta_4;
+    if term.t >= 2 {
+        let t_idx = term.t as usize;
+        sum += term.n * t * (t - 1.0) * delta_powers[term.d as usize] * tau_powers[t_idx - 2] * exp_delta_4;
+    }
     for term in &RES_EXP_D2_CN[5..9] {
         let t = term.t as f64;
-        sum += term.n * t * (t - 1.0) * delta_powers[term.d as usize] * tau.powf(t - 2.0) * exp_delta_6;
+        if term.t >= 2 {
+            let t_idx = term.t as usize;
+            sum += term.n * t * (t - 1.0) * delta_powers[term.d as usize] * tau_powers[t_idx - 2] * exp_delta_6;
+        }
     }
 
     // Gaussian terms (i=1 to i=3): ∂²(Σᵢ nᵢδᵈⁱτᵗⁱexp[-αᵢ(δ-εᵢ)²-βᵢ(τ-γᵢ)²])/∂τ²
@@ -631,7 +720,7 @@ pub fn d2phi_residual_dtau2(delta: f64, tau: f64) -> f64 {
         let factor = t / tau - 2.0 * b * t_g;
         let tau_2 = tau * tau;
         let d2_factor = -t / tau_2 - 2.0 * b;
-        let d2_tau_exp = tau.powf(t) * exp_term * (factor * factor + d2_factor);
+        let d2_tau_exp = tau_powers[term.t as usize] * exp_term * (factor * factor + d2_factor);
 
         sum += term.n * delta_powers[term.d as usize] * d2_tau_exp;
     }
@@ -684,10 +773,12 @@ pub fn d2phi_residual_dtau2(delta: f64, tau: f64) -> f64 {
 }
 
 /// Compute mixed derivative ∂²φʳ/∂δ∂τ for residual part
+#[inline]
 pub fn d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
     let delta_powers = precompute_delta_powers!(delta);
+    let tau_powers = precompute_tau_powers!(tau);
     let delta_2 = delta_powers[2];
     let delta_3 = delta_powers[3];
     let delta_4 = delta_powers[4];
@@ -702,7 +793,8 @@ pub fn d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64 {
     let exp_delta = (-delta).exp();
     for term in &RES_EXP_D2_C1 {
         let deriv_delta = (term.d as f64) - delta;
-        sum += term.n * (term.t as f64) * delta_powers[(term.d - 1) as usize] * tau.powf((term.t - 1) as f64)
+        let t = term.t as usize;
+        sum += term.n * (term.t as f64) * delta_powers[(term.d - 1) as usize] * tau_powers[t - 1]
             * deriv_delta * exp_delta;
     }
 
@@ -710,7 +802,8 @@ pub fn d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64 {
     let exp_delta_2 = (-delta_2).exp();
     for term in &RES_EXP_D2_C2 {
         let deriv_delta = (term.d as f64) - 2.0 * delta_2;
-        sum += term.n * (term.t as f64) * delta_powers[(term.d - 1) as usize] * tau.powf((term.t - 1) as f64)
+        let t = term.t as usize;
+        sum += term.n * (term.t as f64) * delta_powers[(term.d - 1) as usize] * tau_powers[t - 1]
             * deriv_delta * exp_delta_2;
     }
 
@@ -720,16 +813,19 @@ pub fn d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64 {
     let exp_delta_6 = (-delta_6).exp();
     for term in &RES_EXP_D2_CN[0..4] {
         let deriv_delta = (term.d as f64) - 3.0 * delta_3;
-        sum += term.n * (term.t as f64) * delta_powers[(term.d - 1) as usize] * tau.powf((term.t - 1) as f64)
+        let t = term.t as usize;
+        sum += term.n * (term.t as f64) * delta_powers[(term.d - 1) as usize] * tau_powers[t - 1]
             * deriv_delta * exp_delta_3;
     }
     let term = &RES_EXP_D2_CN[4];
     let deriv_delta = (term.d as f64) - 4.0 * delta_4;
-    sum += term.n * (term.t as f64) * delta_powers[(term.d - 1) as usize] * tau.powf((term.t - 1) as f64)
+    let t = term.t as usize;
+    sum += term.n * (term.t as f64) * delta_powers[(term.d - 1) as usize] * tau_powers[t - 1]
         * deriv_delta * exp_delta_4;
     for term in &RES_EXP_D2_CN[5..9] {
         let deriv_delta = (term.d as f64) - 6.0 * delta_6;
-        sum += term.n * (term.t as f64) * delta_powers[(term.d - 1) as usize] * tau.powf((term.t - 1) as f64)
+        let t = term.t as usize;
+        sum += term.n * (term.t as f64) * delta_powers[(term.d - 1) as usize] * tau_powers[t - 1]
             * deriv_delta * exp_delta_6;
     }
 
@@ -741,7 +837,7 @@ pub fn d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64 {
         let deriv_delta = (term.d as f64) / delta - 2.0 * (term.a as f64) * (delta - term.e as f64);
         let deriv_tau = (term.t as f64) / tau - 2.0 * (term.b as f64) * (tau - term.g);
 
-        sum += term.n * delta_powers[term.d as usize] * tau.powi(term.t) * exp_term * deriv_delta * deriv_tau;
+        sum += term.n * delta_powers[term.d as usize] * tau_powers[term.t as usize] * exp_term * deriv_delta * deriv_tau;
     }
 
     // Non-analytic terms: mixed derivative

@@ -21,3 +21,15 @@ crate-type = ["rlib"]
 
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
+
+# ==========================================================================
+# Build Profiles
+# ==========================================================================
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[profile.release.build-override]
+opt-level = 0

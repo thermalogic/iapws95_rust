@@ -88,6 +88,14 @@ cargo test --test td_test    # Specific test
 | `td_test.rs`             | T-ρ-p equation of state (Table 7)            |
 | `T_saturation_table8.rs` | Saturation properties (Table 8)              |
 
+## Performance
+
+幂次预计算优化：使用宏在函数入口处一次性计算 δ⁰~δ¹⁵ 和 τ⁰~τ⁵⁰，避免重复调用 `powi`/`powf`。指数因子 `exp(−δᶜ)` 按类别各计算一次后复用。配合 `opt-level=3`、LTO 和 `target-cpu=native` 编译优化。
+
+```bash
+cargo run --release --example benchmark
+```
+
 ## Implementation Details
 
 ### Helmholtz Free Energy Derivatives

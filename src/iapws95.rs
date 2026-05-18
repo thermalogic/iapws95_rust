@@ -62,6 +62,7 @@ pub fn inv_reduced_temp(T: f64) -> f64 {
 // ==========================================================================
 
 /// Compute pressure: p = R·T·ρ·(1 + δ·∂φʳ/∂δ) / 1000 \[MPa\]
+#[inline]
 pub(crate) fn calc_pressure(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -70,6 +71,7 @@ pub(crate) fn calc_pressure(T: f64, rho: f64) -> f64 {
 }
 
 /// Compute specific internal energy: u = R·T·τ·(∂φ°/∂τ + ∂φʳ/∂τ) \[kJ/kg\]
+#[inline]
 pub(crate) fn calc_internal_energy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -78,6 +80,7 @@ pub(crate) fn calc_internal_energy(T: f64, rho: f64) -> f64 {
 }
 
 /// Compute specific entropy: s = R·[τ·(∂φ°/∂τ + ∂φʳ/∂τ) - φ° - φʳ] \[kJ/(kg·K)\]
+#[inline]
 pub(crate) fn calc_entropy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -90,6 +93,7 @@ pub(crate) fn calc_entropy(T: f64, rho: f64) -> f64 {
 }
 
 /// Compute specific enthalpy: h = R·T·[τ·(∂φ°/∂τ + ∂φʳ/∂τ) + 1 + δ·∂φʳ/∂δ] \[kJ/kg\]
+#[inline]
 pub(crate) fn calc_enthalpy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -100,6 +104,7 @@ pub(crate) fn calc_enthalpy(T: f64, rho: f64) -> f64 {
 }
 
 /// Compute isochoric heat capacity: cv = -R·τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²) \[kJ/(kg·K)\]
+#[inline]
 pub(crate) fn calc_cv(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
@@ -109,6 +114,7 @@ pub(crate) fn calc_cv(T: f64, rho: f64) -> f64 {
 }
 
 /// Compute isobaric heat capacity: cp = -R·τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²) + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) \[kJ/(kg·K)\]
+#[inline]
 pub(crate) fn calc_cp(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
@@ -128,6 +134,7 @@ pub(crate) fn calc_cp(T: f64, rho: f64) -> f64 {
 
 /// Compute speed of sound: w = √[R·T·(1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ² - N²/(τ²·∂²φ/∂τ²))] · √1000 [m/s]
 /// Where N = 1 + δ·∂φʳ/∂δ - δ·τ·∂²φʳ/∂δ∂τ
+#[inline]
 pub(crate) fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -164,6 +171,7 @@ pub(crate) fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
 /// - φʳ_δτ = ∂²φʳ/∂δ∂τ (mixed second derivative)
 /// - φ°_ττ = ∂²φ°/∂τ² (second derivative of ideal gas Helmholtz free energy w.r.t. τ)
 /// - φʳ_ττ = ∂²φʳ/∂τ² (second derivative of residual Helmholtz free energy w.r.t. τ)
+#[inline]
 pub(crate) fn calc_joule_thomson(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -197,6 +205,7 @@ pub(crate) fn calc_joule_thomson(T: f64, rho: f64) -> f64 {
 /// - φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
 /// - φʳ_δδ = ∂²φʳ/∂δ² (second derivative w.r.t. δ)
 /// - φʳ_δτ = ∂²φʳ/∂δ∂τ (mixed second derivative)
+#[inline]
 pub(crate) fn calc_isothermal_throttling(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -228,6 +237,7 @@ pub(crate) fn calc_isothermal_throttling(T: f64, rho: f64) -> f64 {
 /// - φʳ_δτ = ∂²φʳ/∂δτ (mixed second derivative)
 /// - φ°_ττ = ∂²φ°/∂τ² (second derivative of ideal gas Helmholtz free energy w.r.t. τ)
 /// - φʳ_ττ = ∂²φʳ/∂τ² (second derivative of residual Helmholtz free energy w.r.t. τ)
+#[inline]
 pub(crate) fn calc_isentropic_temp_pressure(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
@@ -255,6 +265,7 @@ pub(crate) fn calc_isentropic_temp_pressure(T: f64, rho: f64) -> f64 {
 // ==========================================================================
 
 /// Check if a state is within the valid range.
+#[inline]
 pub fn iapws95_in_range(T: f64, _p: Option<f64>) -> bool {
     let _ = _p;
     T >= IAPWS95_TMIN && T <= IAPWS95_TMAX
@@ -265,60 +276,70 @@ pub fn iapws95_in_range(T: f64, _p: Option<f64>) -> bool {
 // ==========================================================================
 
 /// Calculate pressure at given temperature (°C) and density \[MPa\]
+#[inline]
 pub fn tr2p(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_pressure(t_k, rho)
 }
 
 /// Calculate internal energy at given temperature (°C) and density \[kJ/kg\]
+#[inline]
 pub fn tr2u(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_internal_energy(t_k, rho)
 }
 
 /// Calculate enthalpy at given temperature (°C) and density \[kJ/kg\]
+#[inline]
 pub fn tr2h(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_enthalpy(t_k, rho)
 }
 
 /// Calculate entropy at given temperature (°C) and density \[kJ/(kg·K)\]
+#[inline]
 pub fn tr2s(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_entropy(t_k, rho)
 }
 
 /// Calculate constant-volume specific heat at given temperature (°C) and density \[kJ/(kg·K)\]
+#[inline]
 pub fn tr2cv(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_cv(t_k, rho)
 }
 
 /// Calculate constant-pressure specific heat at given temperature (°C) and density \[kJ/(kg·K)\]
+#[inline]
 pub fn tr2cp(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_cp(t_k, rho)
 }
 
 /// Calculate speed of sound at given temperature (°C) and density \[m/s\]
+#[inline]
 pub fn tr2w(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_speed_of_sound(t_k, rho)
 }
 
 /// Calculate Joule-Thomson coefficient at given temperature (°C) and density \[K/MPa\]
+#[inline]
 pub fn tr2jt(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_joule_thomson(t_k, rho)
 }
 
 /// Calculate Isothermal throttling coefficient at given temperature (°C) and density \[kJ/(kg·MPa)\]
+#[inline]
 pub fn tr2itt(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_isothermal_throttling(t_k, rho)
 }
 
 /// Calculate Isentropic temperature-pressure coefficient at given temperature (°C) and density \[K/MPa\]
+#[inline]
 pub fn tr2beta_s(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_isentropic_temp_pressure(t_k, rho)

@@ -128,6 +128,8 @@ D = 1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ²
 ```
 iapws95_rust/
 ├── Cargo.toml                          # Package manifest (no external deps)
+├── .cargo/
+│   └── config.toml                     # Build configuration (compiler flags)
 ├── src/
 │   ├── lib.rs                          # Library entry point, re-exports modules
 │   ├── iapws95.rs                      # Main module: constants, API functions
@@ -135,7 +137,8 @@ iapws95_rust/
 │   ├── iapws95_residual.rs             # Residual part φʳ and derivatives
 │   └── iapws95_saturation.rs           # Saturation properties solver
 ├── examples/
-│   └── basic_usage.rs                  # Usage example (single-phase + saturation)
+│   ├── basic_usage.rs                  # Usage example (single-phase + saturation)
+│   └── benchmark.rs                    # Performance benchmark
 └── tests/
     ├── td_free_energy.rs               # Helmholtz free energy verification (Table 6)
     ├── td_test.rs                      # T-ρ-p EOS verification (Table 7)
@@ -219,6 +222,9 @@ These are the primary public API functions. They accept temperature in **Celsius
 | `tr2cv(t_c, rho)` | cv at T(°C), ρ |
 | `tr2cp(t_c, rho)` | cp at T(°C), ρ |
 | `tr2w(t_c, rho)` | Speed of sound at T(°C), ρ |
+| `tr2jt(t_c, rho)` | Joule-Thomson coefficient at T(°C), ρ |
+| `tr2itt(t_c, rho)` | Isothermal throttling coefficient at T(°C), ρ |
+| `tr2beta_s(t_c, rho)` | Isentropic temperature-pressure coefficient at T(°C), ρ |
 
 Implementation pattern:
 ```rust
@@ -333,6 +339,19 @@ let delta_powers = precompute_delta_powers!(delta);
 ```
 
 The macro uses sequential multiplication (δ² = δ·δ, δ³ = δ²·δ, ...) which is more efficient than calling `powi` for each individual power. Functions that need specific powers (e.g., δ², δ³, δ⁴, δ⁶ for exponential terms) access them directly from the array.
+
+##### `precompute_tau_powers!` (macro)
+
+A compile-time macro that precomputes all tau powers from τ⁰ to τ⁵⁰ as a `[f64; 51]` array. This eliminates repeated `powf` calls across all residual functions.
+
+```rust
+let tau_powers = precompute_tau_powers!(tau);
+// tau_powers[0] = 1.0, tau_powers[1] = tau, tau_powers[2] = tau², ..., tau_powers[50] = tau⁵⁰
+```
+
+The macro uses sequential multiplication (τ² = τ·τ, τ³ = τ²·τ, ...) which is more efficient than calling `powf` for each individual power. Functions that need specific powers (e.g., τ⁴, τ¹⁰, τ⁵⁰ for exponential terms) access them directly from the array.
+
+**Note:** For second derivative calculations (∂²φʳ/∂τ²), terms with t < 2 are skipped since they contribute zero to the second derivative, avoiding index underflow when accessing `tau_powers[t_idx - 2]`.
 
 ##### `phi_residual(delta: f64, tau: f64) -> f64`
 
@@ -451,6 +470,9 @@ let s    = calc_entropy(T, rho);         // kJ/(kg·K)
 let cv   = calc_cv(T, rho);              // kJ/(kg·K)
 let cp   = calc_cp(T, rho);              // kJ/(kg·K)
 let w    = calc_speed_of_sound(T, rho);  // m/s
+let mu   = calc_joule_thomson(T, rho);   // K/MPa
+let itt  = calc_isothermal_throttling(T, rho); // dimensionless
+let beta = calc_isentropic_temp_pressure(T, rho); // K/MPa
 ```
 
 ### Single-Phase Properties (Celsius input)
@@ -466,6 +488,9 @@ let s    = tr2s(t_c, rho);        // kJ/(kg·K)
 let cv   = tr2cv(t_c, rho);       // kJ/(kg·K)
 let cp   = tr2cp(t_c, rho);       // kJ/(kg·K)
 let w    = tr2w(t_c, rho);        // m/s
+let mu   = tr2jt(t_c, rho);       // K/MPa
+let itt  = tr2itt(t_c, rho);      // dimensionless
+let beta = tr2beta_s(t_c, rho);   // K/MPa
 ```
 
 ### Saturation Properties
@@ -676,7 +701,18 @@ let delta_powers = precompute_delta_powers!(delta);
 
 The macro uses sequential multiplication (δ² = δ·δ, δ³ = δ²·δ, ...), which is more efficient than calling `powi` for each individual power.
 
-### 9.2 Exponential Factor Reuse
+### 9.2 Tau Powers Precomputation
+
+All residual functions also use the `precompute_tau_powers!` macro to precompute τ⁰ through τ⁵⁰ as a `[f64; 51]` array. This eliminates repeated `powf` calls, which are significantly more expensive than `powi` since they handle arbitrary floating-point exponents.
+
+```rust
+let tau_powers = precompute_tau_powers!(tau);
+// Usage: tau_powers[term.t as usize] instead of tau.powf(term.t)
+```
+
+The macro uses sequential multiplication (τ² = τ·τ, τ³ = τ²·τ, ...), providing a substantial performance improvement over calling `powf` for each term.
+
+### 9.3 Exponential Factor Reuse
 
 Exponential factors are computed once per function call and reused across all terms in each category:
 
@@ -688,7 +724,7 @@ Exponential factors are computed once per function call and reused across all te
 | `exp(−δ⁴)` | c=4 exponential term (1 term) | `RES_EXP_D2_CN[4]` |
 | `exp(−δ⁶)` | c=6 exponential terms (4 terms) | `RES_EXP_D2_CN[5..9]` |
 
-### 9.3 Direct cp Calculation
+### 9.4 Direct cp Calculation
 
 The `calc_cp` function computes the isobaric heat capacity directly using the full formula rather than calling `calc_cv`. This avoids redundant evaluation of `d2phi_ideal_dtau2` and `d2phi_residual_dtau2`, which are expensive second-order derivative computations.
 
@@ -706,7 +742,7 @@ let denominator = 1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta
 IAPWS95_R * (cv_part + numerator / denominator)
 ```
 
-### 9.4 Negative Exponent Handling
+### 9.5 Negative Exponent Handling
 
 In `d2phi_residual_ddelta2`, terms with d < 2 require negative exponents (δ^(d−2)). The implementation uses a conditional check to fall back to `powi` for these cases while using the precomputed array for d ≥ 2:
 
@@ -716,6 +752,57 @@ let delta_d_minus_2 = if term.d >= 2 {
 } else {
     delta.powi(term.d - 2)
 };
+```
+
+### 9.6 Compiler Optimizations
+
+The project is configured with aggressive compiler optimizations for release builds:
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `opt-level` | 3 | Maximum optimization level |
+| `lto` | "thin" | Link-time optimization for cross-crate inlining |
+| `codegen-units` | 1 | Single codegen unit for better global optimization |
+| `target-cpu` | native | Generate instructions optimized for the build machine's CPU |
+
+Configuration in [Cargo.toml](../Cargo.toml):
+
+```toml
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+```
+
+Configuration in [.cargo/config.toml](../.cargo/config.toml):
+
+```toml
+[build]
+rustflags = ["-C", "target-cpu=native", "-C", "opt-level=3"]
+```
+
+### 9.7 Benchmark Results
+
+Performance benchmarks were run using [examples/benchmark.rs](../examples/benchmark.rs) with 100,000 iterations per test. The results show the combined effect of all optimizations:
+
+| Test Scenario | Time per Call/State |
+|---------------|---------------------|
+| tr2p (pressure) | ~300 ns/call |
+| tr2u (internal energy) | ~2000 ns/call |
+| tr2h (enthalpy) | ~2100 ns/call |
+| tr2s (entropy) | ~2100 ns/call |
+| tr2cv (cv) | ~400 ns/call |
+| tr2cp (cp) | ~400 ns/call |
+| tr2w (speed of sound) | ~400 ns/call |
+| tr2jt (Joule-Thomson) | ~400 ns/call |
+| tr2itt (isothermal throttling) | ~400 ns/call |
+| tr2beta_s (isentropic coefficient) | ~400 ns/call |
+| 50 property calcs × 5 states | ~35 μs/state |
+
+Run benchmarks with:
+
+```bash
+cargo run --release --example benchmark
 ```
 
 ---
