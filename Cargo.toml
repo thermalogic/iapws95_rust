@@ -1,6 +1,6 @@
 [package]
 name = "iapws95"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 description = "IAPWS-95 Thermodynamic Properties Library for Water/Steam - Rust Implementation"
 repository = "https://github.com/thermalogic/iapws95_rust"
@@ -21,7 +21,7 @@ crate-type = ["rlib"]
 
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
-criterion = { version = "0.5.1", features = ["html_reports"] }
+criterion = { version = "0.8.2", features = ["html_reports"] }
 
 # ==========================================================================
 # Build Profiles

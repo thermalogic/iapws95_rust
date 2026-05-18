@@ -1,10 +1,7 @@
 # IAPWS-95 Thermodynamic Properties Library — Technical Documentation
 
-**Version:** 0.1.0  
 **Language:** Rust (Edition 2021)  
 **Standard:** IAPWS-95 (Revised 2018)
-
----
 
 ## Table of Contents
 
@@ -17,8 +14,6 @@
 7. [Test Suite](#7-test-suite)
 8. [Build and Usage](#8-build-and-usage)
 9. [Performance Optimizations](#9-performance-optimizations)
-
----
 
 ## 1. Overview
 
@@ -47,8 +42,6 @@ This library implements the **IAPWS-95** formulation — the International Assoc
 | Critical density | ρc | 322.0 | kg/m³ |
 | Critical pressure | pc | 22.064 | MPa |
 | Specific gas constant | R | 0.46151805 | kJ/(kg·K) |
-
----
 
 ## 2. Theoretical Foundation
 
@@ -121,8 +114,6 @@ N = 1 + δ·∂φʳ/∂δ − δ·τ·∂²φʳ/∂δ∂τ
 D = 1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ²
 ```
 
----
-
 ## 3. Project Structure
 
 ```
@@ -136,9 +127,10 @@ iapws95_rust/
 │   ├── iapws95_ideal.rs                # Ideal gas part φ° and derivatives
 │   ├── iapws95_residual.rs             # Residual part φʳ and derivatives
 │   └── iapws95_saturation.rs           # Saturation properties solver
+├── benches/
+│   └── iapws95_bench.rs                # Performance benchmarks (Criterion.rs)
 ├── examples/
 │   ├── basic_usage.rs                  # Usage example (single-phase + saturation)
-│   └── benchmark.rs                    # Performance benchmark
 └── tests/
     ├── td_free_energy.rs               # Helmholtz free energy verification (Table 6)
     ├── td_test.rs                      # T-ρ-p EOS verification (Table 7)
@@ -781,30 +773,26 @@ Configuration in [.cargo/config.toml](../.cargo/config.toml):
 rustflags = ["-C", "target-cpu=native", "-C", "opt-level=3"]
 ```
 
-### 9.7 Benchmark Results
+### 9.7 Performance Benchmarking
 
-Performance benchmarks were run using [examples/benchmark.rs](../examples/benchmark.rs) with 100,000 iterations per test. The results show the combined effect of all optimizations:
+The library includes comprehensive performance benchmarks using Criterion.rs framework to measure and track the performance of all thermodynamic property calculations.
 
-| Test Scenario | Time per Call/State |
-|---------------|---------------------|
-| tr2p (pressure) | ~300 ns/call |
-| tr2u (internal energy) | ~2000 ns/call |
-| tr2h (enthalpy) | ~2100 ns/call |
-| tr2s (entropy) | ~2100 ns/call |
-| tr2cv (cv) | ~400 ns/call |
-| tr2cp (cp) | ~400 ns/call |
-| tr2w (speed of sound) | ~400 ns/call |
-| tr2jt (Joule-Thomson) | ~400 ns/call |
-| tr2itt (isothermal throttling) | ~400 ns/call |
-| tr2beta_s (isentropic coefficient) | ~400 ns/call |
-| 50 property calcs × 5 states | ~35 μs/state |
+#### Benchmark Structure
 
-Run benchmarks with:
+The benchmark suite ([benches/iapws95_bench.rs](../benches/iapws95_bench.rs)) consists of three test groups:
+
+1. **Single Properties** - Tests each property at 25°C, 997 kg/m³
+2. **Steam Properties** - Tests key properties at 500°C, 5 kg/m³
+3. **Multiple States** - Tests all properties across 5 different thermodynamic states
+
+#### Running Benchmarks
 
 ```bash
-cargo run --release --example benchmark
+cargo bench
 ```
 
----
+Results are generated in `target/criterion/report/` as HTML reports with detailed performance analysis.
+
+*Note: Actual performance varies with CPU architecture and compiler optimizations.*
 
 *This documentation corresponds to IAPWS-95 Formulation 1995 (Revised 2018). For the official standard, refer to [IAPWS R6-95(2018)](https://iapws.org/readme/iapws-r1/).*

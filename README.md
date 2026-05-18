@@ -119,6 +119,7 @@ No external runtime dependencies. Only uses Rust standard library.
 ```toml
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
+criterion = { version = "0.8.2", features = ["html_reports"] }
 ```
 
 ## References
