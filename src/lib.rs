@@ -61,3 +61,6 @@ pub mod iapws95;
 pub mod iapws95_ideal;
 pub mod iapws95_residual;
 pub mod iapws95_saturation;
+
+// Re-export public API functions at crate root
+pub use iapws95::*;
