@@ -11,14 +11,6 @@ The package is published on [crates.io](https://crates.io/crates/iapws95). Insta
 ```bash
 cargo install iapws95
 ```
-
-Or add to your `Cargo.toml`:
-
-```toml
-[dependencies]
-iapws95 = "0.1"
-```
-
 ### Build from Source
 
 ```bash
