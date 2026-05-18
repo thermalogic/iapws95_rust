@@ -15,7 +15,7 @@ pub struct NewPropData {
 // Reference data for testing new properties
 // Values calculated based on IAPWS-95 formulation
 // Note: These are approximate reference values for validation
-pub const new_prop_data: [NewPropData; 5] = [
+pub const NEW_PROP_DATA: [NewPropData; 5] = [
     // State 1: Liquid water at 25°C (298.15 K), density ~997 kg/m³
     NewPropData { T: 298.15, rho: 997.0, mu: 0.0, mu_T: 0.0, beta_s: 0.0 },
     // State 2: Steam at 200°C (473.15 K), low density
