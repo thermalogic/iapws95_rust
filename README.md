@@ -98,12 +98,8 @@ cargo run --release --example benchmark
 
 The library implements complete first and second derivatives of the Helmholtz free energy:
 
-- **Ideal gas part (φ°)**: Analytical derivatives for all terms
-- **Residual part (φʳ)**: Full derivative support including:
-  - Polynomial terms (i=1-7)
-  - Exponential terms with c=1,2,3,4,6 (i=8-51)
-  - Gaussian terms (i=52-54)
-  - Non-analytic terms (i=55-56)
+- **Ideal gas part (φ°)**
+- **Residual part (φʳ)** 
 
 All derivative formulas have been verified against reference values from IAPWS-95 Table 6.
 
