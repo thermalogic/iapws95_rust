@@ -10,6 +10,7 @@
 //! - `calc_joule_momson`, `calc_isothermal_throttling`, `calc_isentropic_temp_pressure`
 use crate::iapws95_ideal::*;
 use crate::iapws95_residual::*;
+use crate::iapws95_residual_direct::*;
 
 // ==========================================================================
 // Reference Constants (IAPWS-95 Section 2)
@@ -343,4 +344,210 @@ pub fn tr2itt(t_c: f64, rho: f64) -> f64 {
 pub fn tr2beta_s(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
     calc_isentropic_temp_pressure(t_k, rho)
+}
+
+// ==========================================================================
+// Direct (non-optimized) API Functions — uses powi/powf directly without precomputation
+// ==========================================================================
+
+#[inline]
+pub(crate) fn calc_pressure_direct(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+    let dphi_r_ddelta = dphi_residual_ddelta_direct(delta, tau);
+    IAPWS95_R * T * rho * (1.0 + delta * dphi_r_ddelta) / 1000.0
+}
+
+#[inline]
+pub(crate) fn calc_internal_energy_direct(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+    let dphi_dtau = dphi_residual_dtau_direct(delta, tau) + dphi_ideal_dtau(tau);
+    IAPWS95_R * T * tau * dphi_dtau
+}
+
+#[inline]
+pub(crate) fn calc_entropy_direct(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+    let phi_o = phi_ideal(delta, tau);
+    let phi_r = phi_residual_direct(delta, tau);
+    let phi_o_t = dphi_ideal_dtau(tau);
+    let phi_r_t = dphi_residual_dtau_direct(delta, tau);
+    let dphi_dtau = phi_o_t + phi_r_t;
+    IAPWS95_R * (tau * dphi_dtau - phi_o - phi_r)
+}
+
+#[inline]
+pub(crate) fn calc_enthalpy_direct(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+    let dphi_o_dtau = dphi_ideal_dtau(tau);
+    let dphi_r_dtau = dphi_residual_dtau_direct(delta, tau);
+    let dphi_r_ddelta = dphi_residual_ddelta_direct(delta, tau);
+    IAPWS95_R * T * (tau * (dphi_o_dtau + dphi_r_dtau) + 1.0 + delta * dphi_r_ddelta)
+}
+
+#[inline]
+pub(crate) fn calc_cv_direct(T: f64, rho: f64) -> f64 {
+    let tau = inv_reduced_temp(T);
+    let delta = reduced_density(rho);
+    let phi_o_tt = d2phi_ideal_dtau2(tau);
+    let phi_r_tt = d2phi_residual_dtau2_direct(delta, tau);
+    IAPWS95_R * (-tau * tau * (phi_o_tt + phi_r_tt))
+}
+
+#[inline]
+pub(crate) fn calc_cp_direct(T: f64, rho: f64) -> f64 {
+    let tau = inv_reduced_temp(T);
+    let delta = reduced_density(rho);
+    let dphi_ddelta = dphi_residual_ddelta_direct(delta, tau);
+    let d2phi_ddelta2 = d2phi_residual_ddelta2_direct(delta, tau);
+    let d2phi_ddelta_dtau = d2phi_residual_ddelta_dtau_direct(delta, tau);
+    let phi_o_tt = d2phi_ideal_dtau2(tau);
+    let phi_r_tt = d2phi_residual_dtau2_direct(delta, tau);
+
+    let cv_part = -tau * tau * (phi_o_tt + phi_r_tt);
+    let numerator = (1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau).powi(2);
+    let denominator = 1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta2;
+
+    IAPWS95_R * (cv_part + numerator / denominator)
+}
+
+#[inline]
+pub(crate) fn calc_speed_of_sound_direct(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+
+    let dphi_ddelta = dphi_residual_ddelta_direct(delta, tau);
+    let d2phi_ddelta2 = d2phi_residual_ddelta2_direct(delta, tau);
+    let d2phi_ddelta_dtau = d2phi_residual_ddelta_dtau_direct(delta, tau);
+    let d2phi_dtau2_ideal = d2phi_ideal_dtau2(tau);
+    let d2phi_dtau2_residual = d2phi_residual_dtau2_direct(delta, tau);
+
+    let numerator = (1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau).powi(2);
+    let denominator = tau * tau * (d2phi_dtau2_ideal + d2phi_dtau2_residual);
+
+    let w_squared = IAPWS95_R * T * (
+        1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta2
+        - numerator / denominator
+    );
+
+    (w_squared * 1000.0).sqrt()
+}
+
+#[inline]
+pub(crate) fn calc_joule_thomson_direct(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+
+    let dphi_r_ddelta = dphi_residual_ddelta_direct(delta, tau);
+    let d2phi_r_ddelta2 = d2phi_residual_ddelta2_direct(delta, tau);
+    let d2phi_r_ddelta_dtau = d2phi_residual_ddelta_dtau_direct(delta, tau);
+    let d2phi_o_dtau2 = d2phi_ideal_dtau2(tau);
+    let d2phi_r_dtau2 = d2phi_residual_dtau2_direct(delta, tau);
+
+    let numerator = -(delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2
+                     + 2.0 * tau * delta * delta * d2phi_r_ddelta_dtau);
+
+    let term1 = 1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
+    let term2 = 1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2;
+    let denominator = rho * IAPWS95_R * (term1 * term1 - tau * tau * (d2phi_o_dtau2 + d2phi_r_dtau2) * term2);
+
+    numerator / denominator
+}
+
+#[inline]
+pub(crate) fn calc_isothermal_throttling_direct(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+
+    let dphi_r_ddelta = dphi_residual_ddelta_direct(delta, tau);
+    let d2phi_r_ddelta2 = d2phi_residual_ddelta2_direct(delta, tau);
+    let d2phi_r_ddelta_dtau = d2phi_residual_ddelta_dtau_direct(delta, tau);
+
+    let numerator = 1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
+    let denominator = 1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2;
+
+    1.0 - (numerator / denominator)
+}
+
+#[inline]
+pub(crate) fn calc_isentropic_temp_pressure_direct(T: f64, rho: f64) -> f64 {
+    let delta = reduced_density(rho);
+    let tau = inv_reduced_temp(T);
+
+    let dphi_r_ddelta = dphi_residual_ddelta_direct(delta, tau);
+    let d2phi_r_ddelta2 = d2phi_residual_ddelta2_direct(delta, tau);
+    let d2phi_r_ddelta_dtau = d2phi_residual_ddelta_dtau_direct(delta, tau);
+    let d2phi_o_dtau2 = d2phi_ideal_dtau2(tau);
+    let d2phi_r_dtau2 = d2phi_residual_dtau2_direct(delta, tau);
+
+    let numerator = 1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
+
+    let term1 = 1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
+    let term2 = 1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2;
+    let denominator = (term1 * term1) - tau * tau * (d2phi_o_dtau2 + d2phi_r_dtau2) * term2;
+
+    numerator / (rho * IAPWS95_R * denominator)
+}
+
+#[inline]
+pub fn tr2p_direct(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_pressure_direct(t_k, rho)
+}
+
+#[inline]
+pub fn tr2u_direct(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_internal_energy_direct(t_k, rho)
+}
+
+#[inline]
+pub fn tr2h_direct(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_enthalpy_direct(t_k, rho)
+}
+
+#[inline]
+pub fn tr2s_direct(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_entropy_direct(t_k, rho)
+}
+
+#[inline]
+pub fn tr2cv_direct(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_cv_direct(t_k, rho)
+}
+
+#[inline]
+pub fn tr2cp_direct(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_cp_direct(t_k, rho)
+}
+
+#[inline]
+pub fn tr2w_direct(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_speed_of_sound_direct(t_k, rho)
+}
+
+#[inline]
+pub fn tr2jt_direct(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_joule_thomson_direct(t_k, rho)
+}
+
+#[inline]
+pub fn tr2itt_direct(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_isothermal_throttling_direct(t_k, rho)
+}
+
+#[inline]
+pub fn tr2beta_s_direct(t_c: f64, rho: f64) -> f64 {
+    let t_k = t_c + 273.15;
+    calc_isentropic_temp_pressure_direct(t_k, rho)
 }
