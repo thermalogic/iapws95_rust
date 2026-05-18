@@ -90,7 +90,7 @@ cargo test --test td_test    # Specific test
 
 ## Performance
 
-* **Computational Optimization**: Power Pre-computation: Use macros to calculate δ⁰~δ¹⁵ and τ⁰~τ⁵⁵ once at the function entry, avoiding repetitive calls to powi/powf. The exponential factor exp(−δᶜ) is calculated once per category and then reused.
+* **Computational Optimization**: Power Pre-computation: Use macros to calculate $\delta^0\sim\delta^{15}$ and $\tau^0\sim\tau^{55}$ once at the function entry, avoiding repetitive calls to powi/powf. The exponential factor $e^{-\delta^c}$ is calculated once per category and then reused.
 * **Compilation Optimization**: opt-level=3, LTO, and target-cpu=native
 
 ```bash
