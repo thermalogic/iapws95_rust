@@ -91,18 +91,6 @@ cargo test --test td_test    # Specific test
 ```bash
 cargo run --release --example benchmark
 ```
-
-## Implementation Details
-
-### Helmholtz Free Energy Derivatives
-
-The library implements complete first and second derivatives of the Helmholtz free energy:
-
-- **Ideal gas part (φ°)**
-- **Residual part (φʳ)** 
-
-All derivative formulas have been verified against reference values from IAPWS-95 Table 6.
-
 ## Dependencies
 
 No external runtime dependencies. Only uses Rust standard library.
