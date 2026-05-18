@@ -34,12 +34,13 @@ fn test_td() {
     for i in 0..11 {
         let T: f64 = Td_data[i].T;
         let d: f64 = Td_data[i].d;
+        let t_c = T - 273.15;
         // Test pressure
-        assert_approx_eq!(Td_data[i].p, calc_pressure(T, d), 1.0e-6f64);
-        assert_approx_eq!(Td_data[i].cv, calc_cv(T, d), 1.0e-6f64);
+        assert_approx_eq!(Td_data[i].p, tr2p(t_c, d), 1.0e-6f64);
+        assert_approx_eq!(Td_data[i].cv, tr2cv(t_c, d), 1.0e-6f64);
         // Test entropy
-        assert_approx_eq!(Td_data[i].s, calc_entropy(T, d), 1.0e-6f64);
+        assert_approx_eq!(Td_data[i].s, tr2s(t_c, d), 1.0e-6f64);
         // Test speed of sound
-        assert_approx_eq!(Td_data[i].w, calc_speed_of_sound(T, d), 5.0e-6);  
+        assert_approx_eq!(Td_data[i].w, tr2w(t_c, d), 5.0e-6);  
     }
 }

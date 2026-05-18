@@ -1,6 +1,12 @@
 //! IAPWS-95 Header - Reference Constants, Ranges, and Data Structures
 //!
 //! Translated from iapws95.h
+//!
+//! # Public API
+//! - `tr2p`, `tr2u`, `tr2h`, `tr2s`, `tr2cv`, `tr2cp`, `tr2w` - Single-phase properties (T in °C, ρ in kg/m³)
+//!
+//! # Internal Functions (pub(crate))
+//! - `calc_pressure`, `calc_internal_energy`, `calc_enthalpy`, `calc_entropy`, `calc_cv`, `calc_cp`, `calc_speed_of_sound`
 use crate::iapws95_ideal::*;
 use crate::iapws95_residual::*;
 
@@ -55,7 +61,7 @@ pub fn inv_reduced_temp(T: f64) -> f64 {
 // ==========================================================================
 
 /// Compute pressure: p = R·T·ρ·(1 + δ·∂φʳ/∂δ) / 1000 \[MPa\]
-pub fn calc_pressure(T: f64, rho: f64) -> f64 {
+pub(crate) fn calc_pressure(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
     let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
@@ -63,7 +69,7 @@ pub fn calc_pressure(T: f64, rho: f64) -> f64 {
 }
 
 /// Compute specific internal energy: u = R·T·τ·(∂φ°/∂τ + ∂φʳ/∂τ) \[kJ/kg\]
-pub fn calc_internal_energy(T: f64, rho: f64) -> f64 {
+pub(crate) fn calc_internal_energy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
     let dphi_dtau = dphi_residual_dtau(delta, tau) + dphi_ideal_dtau(tau);
@@ -71,7 +77,7 @@ pub fn calc_internal_energy(T: f64, rho: f64) -> f64 {
 }
 
 /// Compute specific entropy: s = R·[τ·(∂φ°/∂τ + ∂φʳ/∂τ) - φ° - φʳ] \[kJ/(kg·K)\]
-pub fn calc_entropy(T: f64, rho: f64) -> f64 {
+pub(crate) fn calc_entropy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
     let phi_o = phi_ideal(delta, tau);
@@ -83,7 +89,7 @@ pub fn calc_entropy(T: f64, rho: f64) -> f64 {
 }
 
 /// Compute specific enthalpy: h = R·T·[τ·(∂φ°/∂τ + ∂φʳ/∂τ) + 1 + δ·∂φʳ/∂δ] \[kJ/kg\]
-pub fn calc_enthalpy(T: f64, rho: f64) -> f64 {
+pub(crate) fn calc_enthalpy(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
     let dphi_o_dtau = dphi_ideal_dtau(tau);
@@ -93,7 +99,7 @@ pub fn calc_enthalpy(T: f64, rho: f64) -> f64 {
 }
 
 /// Compute isochoric heat capacity: cv = -R·τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²) \[kJ/(kg·K)\]
-pub fn calc_cv(T: f64, rho: f64) -> f64 {
+pub(crate) fn calc_cv(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
     let phi_o_tt = d2phi_ideal_dtau2(tau);
@@ -101,26 +107,27 @@ pub fn calc_cv(T: f64, rho: f64) -> f64 {
     IAPWS95_R * (-tau * tau * (phi_o_tt + phi_r_tt))
 }
 
-/// Compute isobaric heat capacity: cp = cv + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) \[kJ/(kg·K)\]
-pub fn calc_cp(T: f64, rho: f64) -> f64 {
+/// Compute isobaric heat capacity: cp = -R·τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²) + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) \[kJ/(kg·K)\]
+pub(crate) fn calc_cp(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
     let dphi_ddelta = dphi_residual_ddelta(delta, tau);
     let d2phi_ddelta2 = d2phi_residual_ddelta2(delta, tau);
     let d2phi_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
-    
-    let cv_val = calc_cv(T, rho);
-    
-    // cp = cv + R * (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)² / (1 + 2δ*φʳ_δ + δ²*φʳ_δδ)
+    let phi_o_tt = d2phi_ideal_dtau2(tau);
+    let phi_r_tt = d2phi_residual_dtau2(delta, tau);
+
+    // cp = -R·τ²·(φ°_ττ + φʳ_ττ) + R * (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)² / (1 + 2δ*φʳ_δ + δ²*φʳ_δδ)
+    let cv_part = -tau * tau * (phi_o_tt + phi_r_tt);
     let numerator = (1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau).powi(2);
     let denominator = 1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta2;
-    
-    cv_val + IAPWS95_R * numerator / denominator
+
+    IAPWS95_R * (cv_part + numerator / denominator)
 }
 
 /// Compute speed of sound: w = √[R·T·(1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ² - N²/(τ²·∂²φ/∂τ²))] · √1000 [m/s]
 /// Where N = 1 + δ·∂φʳ/∂δ - δ·τ·∂²φʳ/∂δ∂τ
-pub fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
+pub(crate) fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
     

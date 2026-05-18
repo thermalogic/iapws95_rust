@@ -1,5 +1,11 @@
 //! IAPWS-95 Saturation Properties Calculation
 //!
+//! # Public API
+//! - `sat_t(t_c: f64) -> Option<SaturationProperties>` - Saturation properties at T(°C)
+//!
+//! # Internal Functions (pub(crate))
+//! - `calc_saturation_properties(T: f64) -> Option<SaturationProperties>` - Same as above but T in K
+//!
 //! Computes saturation properties using a hybrid approach:
 //! 1. Use IAPWS SR1-86 (1992) explicit equations for initial guesses
 //! 2. Refine using Newton's method to solve IAPWS-95 phase equilibrium conditions
@@ -222,7 +228,7 @@ fn solve_phase_equilibrium(t: f64, tau: f64) -> Option<(f64, f64)> {
 }
 
 /// Compute saturation properties at given temperature T \[K\]
-pub fn calc_saturation_properties(T: f64) -> Option<SaturationProperties> {
+pub(crate) fn calc_saturation_properties(T: f64) -> Option<SaturationProperties> {
     if T < 273.16 || T > IAPWS95_TCRIT {
         return None;
     }

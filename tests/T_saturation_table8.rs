@@ -35,7 +35,7 @@ fn test_table8_saturation_properties() {
         let s_l_ref = row[6];
         let s_v_ref = row[7];
         
-        let sat = calc_saturation_properties(t);
+        let sat = sat_t(t - 273.15);
         
         if sat.is_none() {
             println!("T={}: FAILED - calculation returned None", t);

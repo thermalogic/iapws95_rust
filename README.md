@@ -51,20 +51,23 @@ cargo doc --open
 
 ```rust
 use iapws95::iapws95::*;
-let t_c = 100.0;      // Temperature in Celsius
-let rho = 958.0;       // Density (kg/m³) — saturated water at 100°C
+let t_c = 26.85;      // Temperature in Celsius，300.0K
+let rho =  0.9965560e3;       // Density (kg/m³) 
 
 let p    = tr2p(t_c, rho);        // Pressure (MPa)
+let u    = tr2u(t_c, rho);        // Internal energy (kJ/kg)
 let h    = tr2h(t_c, rho);        // Enthalpy (kJ/kg)
 let s    = tr2s(t_c, rho);        // Entropy (kJ/(kg·K))
+let cv   = tr2cv(t_c, rho);       // Constant-volume specific heat (kJ/(kg·K))
+let cp   = tr2cp(t_c, rho);       // Constant-pressure specific heat (kJ/(kg·K))
 let w    = tr2w(t_c, rho);        // Speed of sound (m/s)
 ```
 
 ## API Reference
 
-### Main Functions (Temperature in °C)
+### Single-Phase Properties (Temperature in °C)
 
-These convenience functions accept temperature in **Celsius** and provide shorter function names as the primary API:
+All functions accept temperature in **Celsius** and density in kg/m³:
 
 | Function          | Description                                        | Returns   |
 | ----------------- | -------------------------------------------------- | --------- |
@@ -76,29 +79,19 @@ These convenience functions accept temperature in **Celsius** and provide shorte
 | `tr2cp(t_c, rho)` | Constant-pressure specific heat at T(°C), ρ(kg/m³) | kJ/(kg·K) |
 | `tr2w(t_c, rho)`  | Speed of sound at T(°C), ρ(kg/m³)                  | m/s       |
 
-### Main Functions (Temperature in K)
-
-These functions accept temperature in **Kelvin**:
-
-| Function                       | Description                                       | Returns   |
-| ------------------------------ | ------------------------------------------------- | --------- |
-| `calc_pressure(T, rho)`        | Pressure at T(K), ρ(kg/m³)                        | MPa       |
-| `calc_internal_energy(T, rho)` | Internal energy at T(K), ρ(kg/m³)                 | kJ/kg     |
-| `calc_enthalpy(T, rho)`        | Enthalpy at T(K), ρ(kg/m³)                        | kJ/kg     |
-| `calc_entropy(T, rho)`         | Entropy at T(K), ρ(kg/m³)                         | kJ/(kg·K) |
-| `calc_cv(T, rho)`              | Constant-volume specific heat at T(K), ρ(kg/m³)   | kJ/(kg·K) |
-| `calc_cp(T, rho)`              | Constant-pressure specific heat at T(K), ρ(kg/m³) | kJ/(kg·K) |
-| `calc_speed_of_sound(T, rho)`  | Speed of sound at T(K), ρ(kg/m³)                  | m/s       |
-
 ### Saturation Properties
 
 ```rust
-use iapws95::iapws95_saturation::*;
+use iapws95::iapws95_saturation::sat_t;
 
 if let Some(props) = sat_t(100.0) {  // Temperature in °C
     println!("p_sat: {} MPa", props.p_sat);
     println!("rho_l: {} kg/m³", props.rho_l);
     println!("rho_v: {} kg/m³", props.rho_v);
+    println!("h_l: {} kJ/kg", props.h_l);
+    println!("h_v: {} kJ/kg", props.h_v);
+    println!("s_l: {} kJ/(kg·K)", props.s_l);
+    println!("s_v: {} kJ/(kg·K)", props.s_v);
 }
 ```
 

@@ -1,4 +1,6 @@
-//! IAPWS-95 Ideal Gas Part Implementation
+//! IAPWS-95 Ideal Gas Part Implementation (Internal Module)
+//!
+//! **This module is internal (`pub(crate)`) and not exposed to external users.**
 //!
 //! Implements the ideal gas part of the dimensionless Helmholtz free energy
 //! based on Equation 5 and Tables 1, 4 of IAPWS-95 Formulation 1995 (Revised 2018).

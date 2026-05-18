@@ -16,6 +16,7 @@
 6. [Saturation Properties Algorithm](#6-saturation-properties-algorithm)
 7. [Test Suite](#7-test-suite)
 8. [Build and Usage](#8-build-and-usage)
+9. [Performance Optimizations](#9-performance-optimizations)
 
 ---
 
@@ -202,71 +203,9 @@ pub fn inv_reduced_temp(T: f64) -> f64 {
 
 **Returns:** Inverse reduced temperature τ (dimensionless)
 
-#### Main API Functions (Kelvin input)
+#### Public API Functions (Celsius input)
 
-All functions accept temperature in Kelvin and density in kg/m³.
-
-##### `calc_pressure(T: f64, rho: f64) -> f64`
-
-Calculates pressure from the equation of state:
-
-```
-p = R·T·ρ·(1 + δ·∂φʳ/∂δ) / 1000    [MPa]
-```
-
-##### `calc_internal_energy(T: f64, rho: f64) -> f64`
-
-Calculates specific internal energy:
-
-```
-u = R·T·τ·(∂φ°/∂τ + ∂φʳ/∂τ)    [kJ/kg]
-```
-
-##### `calc_enthalpy(T: f64, rho: f64) -> f64`
-
-Calculates specific enthalpy:
-
-```
-h = R·T·[τ·(∂φ°/∂τ + ∂φʳ/∂τ) + 1 + δ·∂φʳ/∂δ]    [kJ/kg]
-```
-
-##### `calc_entropy(T: f64, rho: f64) -> f64`
-
-Calculates specific entropy:
-
-```
-s = R·[τ·(∂φ°/∂τ + ∂φʳ/∂τ) − φ° − φʳ]    [kJ/(kg·K)]
-```
-
-##### `calc_cv(T: f64, rho: f64) -> f64`
-
-Calculates constant-volume specific heat:
-
-```
-cv = −R·τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²)    [kJ/(kg·K)]
-```
-
-##### `calc_cp(T: f64, rho: f64) -> f64`
-
-Calculates constant-pressure specific heat:
-
-```
-cp = cv + R·(1 + δ·∂φʳ/∂δ − δ·τ·∂²φʳ/∂δ∂τ)² / (1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ²)    [kJ/(kg·K)]
-```
-
-##### `calc_speed_of_sound(T: f64, rho: f64) -> f64`
-
-Calculates speed of sound:
-
-```
-w = √[R·T·(1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ² − N²/(τ²·∂²φ/∂τ²))] · √1000    [m/s]
-```
-
-Where `N = 1 + δ·∂φʳ/∂δ − δ·τ·∂²φʳ/∂δ∂τ`. The factor √1000 converts from kJ/kg to J/kg.
-
-#### Convenience Functions (Celsius input)
-
-These functions convert Celsius to Kelvin and delegate to the Kelvin-based API:
+These are the primary public API functions. They accept temperature in **Celsius** and density in kg/m³:
 
 | Function | Description |
 |----------|-------------|
@@ -285,6 +224,20 @@ pub fn tr2p(t_c: f64, rho: f64) -> f64 {
     calc_pressure(t_k, rho)
 }
 ```
+
+#### Internal Functions (Kelvin input)
+
+These functions are `pub(crate)` and used internally by the `tr2*` convenience functions:
+
+| Function | Description |
+|----------|-------------|
+| `calc_pressure(T, rho)` | Pressure at T(K), ρ |
+| `calc_internal_energy(T, rho)` | Internal energy at T(K), ρ |
+| `calc_enthalpy(T, rho)` | Enthalpy at T(K), ρ |
+| `calc_entropy(T, rho)` | Entropy at T(K), ρ |
+| `calc_cv(T, rho)` | cv at T(K), ρ |
+| `calc_cp(T, rho)` | cp at T(K), ρ |
+| `calc_speed_of_sound(T, rho)` | Speed of sound at T(K), ρ |
 
 #### Range Check
 
@@ -364,17 +317,28 @@ Implements φʳ(δ, τ) and all its partial derivatives up to second order for t
 
 #### Functions
 
+##### `precompute_delta_powers!` (macro)
+
+A compile-time macro that precomputes all delta powers from δ⁰ to δ¹⁵ as a `[f64; 16]` array. This eliminates repeated `powi` calls across all residual functions.
+
+```rust
+let delta_powers = precompute_delta_powers!(delta);
+// delta_powers[0] = 1.0, delta_powers[1] = delta, delta_powers[2] = delta², ..., delta_powers[15] = delta¹⁵
+```
+
+The macro uses sequential multiplication (δ² = δ·δ, δ³ = δ²·δ, ...) which is more efficient than calling `powi` for each individual power. Functions that need specific powers (e.g., δ², δ³, δ⁴, δ⁶ for exponential terms) access them directly from the array.
+
 ##### `phi_residual(delta: f64, tau: f64) -> f64`
 
-Computes the full residual Helmholtz free energy by summing all 56 terms across all categories. Precomputes delta powers (δ², δ³, δ⁴, δ⁶) for efficiency in exponential term evaluation.
+Computes the full residual Helmholtz free energy by summing all 56 terms across all categories. Precomputes delta powers via `precompute_delta_powers!` and precomputes exponential factors (exp(−δ), exp(−δ²), exp(−δ³), exp(−δ⁴), exp(−δ⁶)) once per function call, reusing them across all terms in each category.
 
 ##### `dphi_residual_ddelta(delta: f64, tau: f64) -> f64`
 
-Computes ∂φʳ/∂δ using analytical derivatives of each term category. For non-analytic terms, applies the chain rule to compute both the direct δ derivative and the indirect contribution through Δ(δ, τ).
+Computes ∂φʳ/∂δ using analytical derivatives of each term category. Uses precomputed delta powers and exponential factors for efficiency. For non-analytic terms, applies the chain rule to compute both the direct δ derivative and the indirect contribution through Δ(δ, τ).
 
 ##### `d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64`
 
-Computes ∂²φʳ/∂δ² using analytical second derivatives for each term category:
+Computes ∂²φʳ/∂δ² using analytical second derivatives for each term category. Uses precomputed delta powers and exponential factors. For terms where d < 2, falls back to `powi` for negative exponents:
 
 - **Polynomial terms**: nᵢ·dᵢ·(dᵢ−1)·δ^(dᵢ−2)·τ^tᵢ (terms with d < 2 contribute zero)
 - **Exponential terms (c=1)**: nᵢ·exp(−δ)·δ^(d−2)·τ^t·[(d−δ)(d−1−δ)−δ]
@@ -385,15 +349,15 @@ Computes ∂²φʳ/∂δ² using analytical second derivatives for each term cat
 
 ##### `dphi_residual_dtau(delta: f64, tau: f64) -> f64`
 
-Computes ∂φʳ/∂τ using analytical derivatives.
+Computes ∂φʳ/∂τ using analytical derivatives. Uses precomputed delta powers and exponential factors.
 
 ##### `d2phi_residual_dtau2(delta: f64, tau: f64) -> f64`
 
-Computes ∂²φʳ/∂τ².
+Computes ∂²φʳ/∂τ². Uses precomputed delta powers and exponential factors.
 
 ##### `d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64`
 
-Computes the mixed derivative ∂²φʳ/∂δ∂τ.
+Computes the mixed derivative ∂²φʳ/∂δ∂τ. Uses precomputed delta powers and exponential factors.
 
 ---
 
@@ -690,6 +654,63 @@ pub fn calc_new_property(T: f64, rho: f64) -> f64 {
 | Energy | J/kg | kJ/kg | Divided by 1e3 in output |
 | Entropy | J/(kg·K) | kJ/(kg·K) | Divided by 1e3 in output |
 | Speed of sound | m/s | m/s | No conversion needed |
+
+---
+
+## 9. Performance Optimizations
+
+### 9.1 Delta Powers Precomputation
+
+All six residual functions use the `precompute_delta_powers!` macro to precompute δ⁰ through δ¹⁵ as a `[f64; 16]` array at the start of each function call. This eliminates repeated `powi` calls throughout the term evaluation loops.
+
+```rust
+let delta_powers = precompute_delta_powers!(delta);
+// Usage: delta_powers[term.d as usize] instead of delta.powi(term.d)
+```
+
+The macro uses sequential multiplication (δ² = δ·δ, δ³ = δ²·δ, ...), which is more efficient than calling `powi` for each individual power.
+
+### 9.2 Exponential Factor Reuse
+
+Exponential factors are computed once per function call and reused across all terms in each category:
+
+| Factor | Computed Once | Used In |
+|--------|---------------|---------|
+| `exp(−δ)` | c=1 exponential terms (15 terms) | `RES_EXP_D2_C1` |
+| `exp(−δ²)` | c=2 exponential terms (20 terms) | `RES_EXP_D2_C2` |
+| `exp(−δ³)` | c=3 exponential terms (4 terms) | `RES_EXP_D2_CN[0..4]` |
+| `exp(−δ⁴)` | c=4 exponential term (1 term) | `RES_EXP_D2_CN[4]` |
+| `exp(−δ⁶)` | c=6 exponential terms (4 terms) | `RES_EXP_D2_CN[5..9]` |
+
+### 9.3 Direct cp Calculation
+
+The `calc_cp` function computes the isobaric heat capacity directly using the full formula rather than calling `calc_cv`. This avoids redundant evaluation of `d2phi_ideal_dtau2` and `d2phi_residual_dtau2`, which are expensive second-order derivative computations.
+
+**Before (redundant):**
+```rust
+let cv = calc_cv(T, rho); // computes d2phi_dtau2 internally
+// then computes additional cp terms
+```
+
+**After (direct):**
+```rust
+let cv_part = -tau * tau * (phi_o_tt + phi_r_tt); // reuse already-computed derivatives
+let numerator = (1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau).powi(2);
+let denominator = 1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta2;
+IAPWS95_R * (cv_part + numerator / denominator)
+```
+
+### 9.4 Negative Exponent Handling
+
+In `d2phi_residual_ddelta2`, terms with d < 2 require negative exponents (δ^(d−2)). The implementation uses a conditional check to fall back to `powi` for these cases while using the precomputed array for d ≥ 2:
+
+```rust
+let delta_d_minus_2 = if term.d >= 2 {
+    delta_powers[(term.d - 2) as usize]
+} else {
+    delta.powi(term.d - 2)
+};
+```
 
 ---
 
