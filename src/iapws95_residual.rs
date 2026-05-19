@@ -174,22 +174,28 @@ pub fn phi_residual(delta: f64, tau: f64) -> f64 {
     for term in &RES_EXP_D2_CN[0..4] {
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_delta_3;
     }
+    
     let term = &RES_EXP_D2_CN[4];
     sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_delta_4;
+    
     for term in &RES_EXP_D2_CN[5..9] {
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_delta_6;
     }
 
+    // Gauss term： i=52~54
     for term in &RES_GAUSS {
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * gauss_exp(term, delta, tau);
     }
-
+    // Non-an term： i=55~56
     for term in &RES_NON_ANAL {
         let d_1 = delta - 1.0;
         let d_1_2 = d_1 * d_1;
+        // θ 
         let tita = (1.0 - tau) + term.A * d_1_2.powf(0.5 / term.bt);
+        // ψ 
         let term2 = tau - 1.0;
         let f_val = (-term.C as f64 * d_1_2 - term.D as f64 * term2 * term2).exp();
+        // ∆
         let delta_val = tita * tita + term.B * d_1_2.powf(term.a);
         sum += term.n * delta_val.powf(term.b) * delta * f_val;
     }
@@ -198,6 +204,7 @@ pub fn phi_residual(delta: f64, tau: f64) -> f64 {
 }
 
 #[inline]
+///φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
 pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
@@ -209,13 +216,13 @@ pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
     for term in &RES_POLY_D1 {
         sum += term.n * (term.d as f64) * delta.powi(term.d - 1) * tau.powf(term.t);
     }
-
+    // c=1
     let exp_delta = (-delta).exp();
     for term in &RES_EXP_D2_C1 {
         let deriv = (term.d as f64) - delta;
         sum += term.n * exp_delta * delta.powi(term.d - 1) * tau.powi(term.t) * deriv;
     }
-
+    // c=2
     let exp_delta_2 = (-delta_2).exp();
     for term in &RES_EXP_D2_C2 {
         let deriv = (term.d as f64) - 2.0 * delta_2;
@@ -236,26 +243,31 @@ pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
         let deriv = (term.d as f64) - 6.0 * delta_6;
         sum += term.n * exp_delta_6 * delta.powi(term.d - 1) * tau.powi(term.t) * deriv;
     }
-
+    // Gauss term： i=52~54
     for term in &RES_GAUSS {
         let exp_term = gauss_exp(term, delta, tau);
         let deriv = (term.d as f64) / delta - 2.0 * (term.a as f64) * (delta - term.e as f64);
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_term * deriv;
+        
     }
-
+     // Non-an term： i=55~56   
     for term in &RES_NON_ANAL {
         let d_1 = delta - 1.0;
         let d_1_2 = d_1 * d_1;
-        let tita = (1.0 - tau) + term.A * d_1_2.powf(0.5 / term.bt);
+        // ψ 
         let f_val = (-term.C as f64 * d_1_2 - term.D as f64 * (tau - 1.0) * (tau - 1.0)).exp();
-        let f_d = -2.0 * term.C as f64 * f_val * d_1;
-
+        // ∂ψ/∂δ 
+        let f_d = -2.0 * term.C as f64 *d_1* f_val;
+        // θ 
+        let tita = (1.0 - tau) + term.A * d_1_2.powf(0.5 / term.bt);
         let tita2 = tita * tita;
+        // ∆
         let delta_val = tita2 + term.B * d_1_2.powf(term.a);
+        // dΔ/dδ = d(tita² + B*d_1^(2a))/dδ
         let delta_d = d_1
-            * (term.A * tita * 2.0 / term.bt * d_1_2.powf(0.5 / term.bt - 1.0)
+            * (term.A * tita * (2.0 / term.bt) * d_1_2.powf(0.5 / term.bt - 1.0)
                 + 2.0 * term.B * term.a * d_1_2.powf(term.a - 1.0));
-
+        // ∆^bi, ∂∆^bi/dδ
         let (delta_b, delta_bd) = if delta_val == 0.0 {
             (0.0, 0.0)
         } else {
