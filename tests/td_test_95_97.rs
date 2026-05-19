@@ -5,7 +5,7 @@ use seuif97::{pt, tv,OP,OD, OH, OS, OCP, OCV, OW, OJTC, OIJTC,OPC};
 use assert_approx_eq::assert_approx_eq;
 
 // IAPWS-IF97
-// Table 33. Thermodynamic property values calculated from Eq. (28) for selected values of T and  a
+// Table 33. Thermodynamic property values calculated from Eq. (28) for selected values of T and d
 //             T,d,p,h,u,s,cp,w
 const r3_Td: [[f64; 8]; 3] = [
     [650., 500., 0.255837018E2, 0.186343019E4, 0.181226279E4, 0.405427273E1, 0.138935717E2, 0.502005554E3],
