@@ -36,8 +36,8 @@ let cv   = tr2cv(t_c, rho);       // Constant-volume specific heat (kJ/(kg·K))
 let cp   = tr2cp(t_c, rho);       // Constant-pressure specific heat (kJ/(kg·K))
 let w    = tr2w(t_c, rho);        // Speed of sound (m/s)
 let mu   = tr2jt(t_c, rho);       // Joule-Thomson coefficient (K/MPa)
-let mu_T = tr2itt(t_c, rho);      // Isothermal throttling coefficient (dimensionless)
-let beta_s = tr2beta_s(t_c, rho); // Isentropic temperature-pressure coefficient (K/MPa)
+let delta_T = tr2itt(t_c, rho);      // Isothermal throttling coefficient (kJ/(kg·MPa))
+let beta_s = tr2beta_s(t_c, rho); // Isentropic temperature-pressure coefficient (1/K)
 ```
 
 ## API Reference
@@ -46,18 +46,18 @@ let beta_s = tr2beta_s(t_c, rho); // Isentropic temperature-pressure coefficient
 
 All functions accept temperature in **Celsius** and density in kg/m³:
 
-| Function          | Description                                        | Returns   |
-| ----------------- | -------------------------------------------------- | --------- |
-| `tr2p(t_c, rho)`  | Pressure at T(°C), ρ(kg/m³)                        | MPa       |
-| `tr2u(t_c, rho)`  | Internal energy at T(°C), ρ(kg/m³)                 | kJ/kg     |
-| `tr2h(t_c, rho)`  | Enthalpy at T(°C), ρ(kg/m³)                        | kJ/kg     |
-| `tr2s(t_c, rho)`  | Entropy at T(°C), ρ(kg/m³)                         | kJ/(kg·K) |
-| `tr2cv(t_c, rho)` | Constant-volume specific heat at T(°C), ρ(kg/m³)   | kJ/(kg·K) |
-| `tr2cp(t_c, rho)` | Constant-pressure specific heat at T(°C), ρ(kg/m³) | kJ/(kg·K) |
-| `tr2w(t_c, rho)`  | Speed of sound at T(°C), ρ(kg/m³)                  | m/s       |
-| `tr2jt(t_c, rho)` | Joule-Thomson coefficient at T(°C), ρ(kg/m³)       | K/MPa     |
-| `tr2itt(t_c, rho)`| Isothermal throttling coefficient at T(°C), ρ(kg/m³)| dimensionless |
-| `tr2beta_s(t_c, rho)` | Isentropic temperature-pressure coefficient at T(°C), ρ(kg/m³) | K/MPa |
+| Function          | Description  t_c(°C), rho(kg/m³)               | Returns    |
+| ----------------- | ---------------------------------------------- | ---------- |
+| `tr2p(t_c, rho)`  | Pressure                                       | MPa        |
+| `tr2u(t_c, rho)`  | Internal energy                                | kJ/kg      |
+| `tr2h(t_c, rho)`  | Enthalpy                                       | kJ/kg      |
+| `tr2s(t_c, rho)`  | Entropy                                        | kJ/(kg·K)  |
+| `tr2cv(t_c, rho)` | Constant-volume specific heat                  | kJ/(kg·K)  |
+| `tr2cp(t_c, rho)` | Constant-pressure specific heat                | kJ/(kg·K)  |
+| `tr2w(t_c, rho)`  | Speed of sound at                              | m/s        |
+| `tr2jt(t_c, rho)` | Joule-Thomson coefficient                      | K/MPa      |
+| `tr2itt(t_c, rho)`| Isothermal throttling coefficient              | kJ/(kg·MPa)|
+| `tr2beta_s(t_c, rho)` | Isentropic temperature-pressure coefficient| 1/K        |
 
 ### Saturation Properties
 
@@ -75,18 +75,12 @@ if let Some(props) = sat_t(100.0) {  // Temperature in °C
 }
 ```
 
-## Testing
+## Testing and Benchmarking
 
 ```bash
 cargo test                    # Run all tests
-cargo test --test td_test    # Specific test
+cargo test --test td_test     # Specific test
 ```
-
-| Test                     | Description                                  |
-| ------------------------ | -------------------------------------------- |
-| `td_free_energy.rs`      | Helmholtz free energy verification (Table 6) |
-| `td_test.rs`             | T-ρ-p equation of state (Table 7)            |
-| `T_saturation_table8.rs` | Saturation properties (Table 8)              |
 
 ```bash
 cargo run --release --example benchmark
