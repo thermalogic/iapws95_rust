@@ -28,21 +28,21 @@ fn test_comparison_pt_95_vs_97() {
         let h_if97 = tv(t_c, v_95, OH);
         let s_if97 = tv(t_c,  v_95, OS);
         let cv_if97 = tv(t_c,  v_95, OCV);
-        let w_if97 = tv(t_c,  v_95, OW);
         let cp_if97 = tv(t_c,  v_95, OCP);
+        let w_if97 = tv(t_c,  v_95, OW);
+        let mu_if97 = tv(t_c, v_95, OJTC);
         let delta_if97 = tv(t_c, v_95, OIJTC);
         let beta_if97 = tv(t_c, v_95, OPC);
-        let mu_if97 = tv(t_c, v_95, OJTC);
         
         // Step 2: Get properties from IAPWS-95 using density 
         let h_95 = tr2h(t_c,rho_95);
         let s_95 = tr2s(t_c, rho_95);
         let cv_95 = tr2cv(t_c, rho_95);
-        let w_95 = tr2w(t_c, rho_95);
         let cp_95 = tr2cp(t_c, rho_95);
+        let w_95 = tr2w(t_c, rho_95);
+        let mu_95 = tr2jt(t_c, rho_95);
         let delta_95 = tr2itt(t_c, rho_95);
         let beta_95 = tr2beta_s(t_c, rho_95);
-        let mu_95 = tr2jt(t_c, rho_95);
        
         // Step 3 Assert approximate 
         assert_approx_eq!(p_95, p_if97, 5.0e-2);
@@ -50,11 +50,11 @@ fn test_comparison_pt_95_vs_97() {
         assert_approx_eq!(h_95, h_if97, 5.0e1);
         assert_approx_eq!(s_95, s_if97, 5.0e1);
         assert_approx_eq!(cv_95, cv_if97, 5.0e1);
-        assert_approx_eq!(w_95, w_if97, 5.0e02);
         assert_approx_eq!(cp_95, cp_if97, 5.0e2);
+        assert_approx_eq!(w_95, w_if97, 5.0e02);
+        assert_approx_eq!(mu_95, mu_if97, 1.0e-5);
         assert_approx_eq!(delta_95,delta_if97, 1.0e1);
         assert_approx_eq!(beta_95,beta_if97, 1.0e1);
-        assert_approx_eq!(mu_95, mu_if97, 1.0e-5);
     }
 }
 
