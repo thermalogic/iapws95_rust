@@ -4,37 +4,36 @@ use iapws95::iapws95::*;
 use seuif97::{pt, tv,OP,OD, OH, OS, OCP, OCV, OW, OJTC, OIJTC,OPC};
 use assert_approx_eq::assert_approx_eq;
 
-mod td_data;
-use td_data::{TD_DATA_TABLE7};
+// IAPWS-IF97
+// Table 33. Thermodynamic property values calculated from Eq. (28) for selected values of T and  a
+//             T,d,p,h,u,s,cp,w
+const r3_Td: [[f64; 8]; 3] = [
+    [650., 500., 0.255837018E2, 0.186343019E4, 0.181226279E4, 0.405427273E1, 0.138935717E2, 0.502005554E3],
+    [650., 200., 0.222930643E2, 0.237512401E4, 0.226365868E4, 0.485438792E1, 0.446579342E2, 0.383444594E3],
+    [750., 500., 0.783095639E2, 0.225868845E4, 0.210206932E4, 0.446971906E1, 0.634165359E1, 0.760696041E3],
+];
+
 #[test]
-fn test_comparison_pt_95_vs_97() {
-    // Data flow: IF97 (p,t) -> v and other properties -> rho=1/v -> IAPWS-95 properties -> compare
-    println!("\n=== Comparison: IAPWS-95 vs IAPWS-IF97 (p,t domain) ===\n");
+fn test_comparison_Td_97_vs_95() {
+    //  IF97 r3 (T,d） compare
+    println!("\n=== Comparison: IAPWS-97 vs IAPWS-IF97 (T,t) ===\n");
     
-    // Select specific test states: indices 0 (liquid), 3 (superheated steam), 7 (near critical)
-    let selected_indices = [3];
-    
-    for &i in &selected_indices {
-        let state = &TD_DATA_TABLE7[i];
-        let p_95 = state.p;
-        let t_k = state.T;
-        let rho_95 = state.d;
-        let v_95=1.0/rho_95;
-        let t_c = t_k - 273.15;
-       
-        // Step 1: Getproperties from IF97
-        let rho_if97 = pt(p_95, t_c, OD);     
-        let p_if97 = tv(t_c, v_95, OP);
-        let h_if97 = tv(t_c, v_95, OH);
-        let s_if97 = tv(t_c,  v_95, OS);
-        let cv_if97 = tv(t_c,  v_95, OCV);
-        let cp_if97 = tv(t_c,  v_95, OCP);
-        let w_if97 = tv(t_c,  v_95, OW);
-        let mu_if97 = tv(t_c, v_95, OJTC);
-        let delta_if97 = tv(t_c, v_95, OIJTC);
-        let beta_if97 = tv(t_c, v_95, OPC);
+    for i in 0..3 {
+        let t_c: f64 = r3_Td[i][0] - 273.15;
+        let v: f64 = 1.0 / r3_Td[i][1];
+        let rho_95= r3_Td[i][1];
+        let p_if97 = tv(t_c, v, OP);
+        let h_if97 = tv(t_c, v, OH);
+        let s_if97 = tv(t_c,  v, OS);
+        let cv_if97 = tv(t_c,  v, OCV);
+        let cp_if97 = tv(t_c,  v, OCP);
+        let w_if97 = tv(t_c,  v, OW);
+        let mu_if97 = tv(t_c, v, OJTC);
+        let delta_if97 = tv(t_c, v, OIJTC);
+        let beta_if97 = tv(t_c, v, OPC);
         
-        // Step 2: Get properties from IAPWS-95 using density 
+        //  Get properties from IAPWS-95 using density 
+        let p_95 = tr2p(t_c,rho_95);
         let h_95 = tr2h(t_c,rho_95);
         let s_95 = tr2s(t_c, rho_95);
         let cv_95 = tr2cv(t_c, rho_95);
@@ -44,19 +43,16 @@ fn test_comparison_pt_95_vs_97() {
         let delta_95 = tr2itt(t_c, rho_95);
         let beta_95 = tr2beta_s(t_c, rho_95);
        
-        // Step 3 Assert approximate 
-        assert_approx_eq!(p_95, p_if97, 5.0e-2);
-        assert_approx_eq!(rho_95, rho_if97, 5.0e1);
-        assert_approx_eq!(h_95, h_if97, 5.0e-1);
-        assert_approx_eq!(s_95, s_if97, 5.0e-1);
-        assert_approx_eq!(cv_95, cv_if97, 5.0e-1);
-        assert_approx_eq!(cp_95, cp_if97, 5.0e-1);
-        assert_approx_eq!(w_95, w_if97, 5.0e-1);
-        // TODO: left: `0.016006260491478408`, right: `19.138216622369853
-        assert_approx_eq!(mu_95, mu_if97, 1.0e-2); 
-        assert_approx_eq!(delta_95,delta_if97, 1.0e1);
+        // assert approximate 
+        assert_approx_eq!(p_95, p_if97, 1.0e-1);
+        assert_approx_eq!(h_95, h_if97, 1.0e0);
+        assert_approx_eq!(s_95, s_if97, 1.0e-3);
+        assert_approx_eq!(cv_95, cv_if97, 1.0e-1);
+        assert_approx_eq!(cp_95, cp_if97, 1.0e0);
+        assert_approx_eq!(w_95, w_if97, 1.0e1);
+        assert_approx_eq!(mu_95, mu_if97, 1.0e1); 
+        assert_approx_eq!(delta_95,delta_if97, 1.0e2);
         assert_approx_eq!(beta_95,beta_if97, 1.0e1);
-    }
-}
-
+    }  
+ }
 

@@ -12,9 +12,12 @@
 /// Where:
 /// - δ = ρ/ρc (reduced density)
 /// - τ = Tc/T (inverse reduced temperature)
+/// - φ°_τ = ∂φ°/∂τ (second derivative of ideal gas Helmholtz free energy w.r.t. τ)
+/// - φʳ_ττ = ∂²φʳ/∂τ² (second derivative of residual Helmholtz free energy w.r.t. τ)
 /// - φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
-/// - φʳ_δτ = ∂²φʳ/∂δ∂τ (mixed second derivative)
-/// - φʳ_δδ = ∂²φʳ/∂δ² (second derivative w.r.t. δ)
+/// - φʳ_δδ = ∂²φ/∂δ² (second derivative w.r.t. δ)
+/// - φʳ_δτ = ∂²φʳ/∂δτ (mixed second derivative)
+/// - φʳ_ττ = ∂²φʳ/∂τ² (second derivative of residual Helmholtz free energy w.r.t. τ)
 
 use crate::iapws95_ideal::*;
 use crate::iapws95_residual::*;
@@ -200,7 +203,8 @@ pub(crate) fn calc_joule_thomson(T: f64, rho: f64) -> f64 {
                      *(1.0 +  delta *(2.0 * dphi_r_ddelta +  delta * d2phi_r_ddelta2));
     let denominator = IAPWS95_R *rho *(term_1_2- term2);
     
-    numerator / denominator
+    1000.0*(numerator / denominator)
+
 }
 
 /// Compute Isothermal throttling coefficient: (∂τ/∂p)_T kJ/(kg·MPa)
@@ -238,14 +242,6 @@ pub(crate) fn calc_isothermal_throttling(T: f64, rho: f64) -> f64 {
 /// Based on IAPWS-95 Table 3 relations:
 /// β_s * ρ * R = (1 + δφ_δ - δτφʳ_δτ) / [(1 + δφʳ_δ - δτφʳ_δτ)² - τ²(φ°_ττ + φʳ_ττ)(1 + 2δφʳ_δ + δ²φʳ_δδ)]
 /// 
-/// Where:
-/// - δ = ρ/ρc (reduced density)
-/// - τ = Tc/T (inverse reduced temperature)
-/// - φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
-/// - φʳ_δδ = ∂²φ/∂δ² (second derivative w.r.t. δ)
-/// - φʳ_δτ = ∂²φʳ/∂δτ (mixed second derivative)
-/// - φ°_ττ = ∂²φ°/∂τ² (second derivative of ideal gas Helmholtz free energy w.r.t. τ)
-/// - φʳ_ττ = ∂²φʳ/∂τ² (second derivative of residual Helmholtz free energy w.r.t. τ)
 #[inline]
 pub(crate) fn calc_isentropic_temp_pressure(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
