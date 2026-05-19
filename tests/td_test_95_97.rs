@@ -1,3 +1,5 @@
+#![allow(warnings)]
+///  cargo test --test td_test_95_97
 use iapws95::iapws95::*;
 use seuif97::{pt, tv,OP,OD, OH, OS, OCP, OCV, OW, OJTC, OIJTC,OPC};
 use assert_approx_eq::assert_approx_eq;

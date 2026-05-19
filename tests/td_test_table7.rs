@@ -1,5 +1,5 @@
 #![allow(warnings)]
-///  cargo test --test td_test
+///  cargo test --test td_test_table7 
 use assert_approx_eq::assert_approx_eq;
 use iapws95::iapws95::*;
 use iapws95::iapws95_ideal::*;
