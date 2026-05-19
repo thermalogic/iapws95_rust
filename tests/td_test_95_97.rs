@@ -14,7 +14,7 @@ const r3_Td: [[f64; 8]; 3] = [
 ];
 
 #[test]
-fn test_comparison_Td_97_vs_95() {
+fn test_comparison_Td_95_vs_97() {
     //  IF97 r3 (T,d） compare
     println!("\n=== Comparison: IAPWS-97 vs IAPWS-IF97 (T,t) ===\n");
     
