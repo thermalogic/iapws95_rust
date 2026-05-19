@@ -20,7 +20,7 @@
 
 /// Precompute delta powers: delta_2, delta_3, delta_4, delta_6
 /// and their exponentials: exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6
-macro_rules! precompute_delta_powers {
+macro_rules! precompute_delta_powers_exps {
     ($delta:ident, $delta_2:ident, $delta_3:ident, $delta_4:ident, $delta_6:ident,
      $exp_delta:ident, $exp_delta_2:ident, $exp_delta_3:ident, $exp_delta_4:ident, $exp_delta_6:ident) => {
         let $delta_2 = $delta * $delta;
@@ -170,14 +170,14 @@ fn gauss_exp(term: &GaussTerm, delta: f64, tau: f64) -> f64 {
 pub fn phi_residual(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
-    precompute_delta_powers!(delta, delta_2, delta_3, delta_4, delta_6,
-                           exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
+    precompute_delta_powers_exps!(delta, delta_2, delta_3, delta_4, delta_6,
+                                 exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
 
-     // Σᵢ nᵢ·δᵈⁱ·τᵗⁱ                                    [polynomial terms, i=1-7]
+     // Σᵢ nᵢ·δᵈⁱ·τᵗⁱ   polynomial terms, i=1-7]
     for term in &RES_POLY_D1 {
         sum += term.n * delta.powi(term.d) * tau.powf(term.t);
     }
-    // Σᵢ nᵢ·δᵈⁱ·τᵗⁱ·exp(-δᶜⁱ)               [exponential terms, i=8-51]
+    // Σᵢ nᵢ·δᵈⁱ·τᵗⁱ·exp(-δᶜⁱ)    [exponential terms, i=8-51]
     // c=1
     for term in &RES_EXP_D2_C1 {
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_delta;
@@ -187,7 +187,6 @@ pub fn phi_residual(delta: f64, tau: f64) -> f64 {
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_delta_2;
     }
     // c=3,4,6
-
     for term in &RES_EXP_D2_CN[0..4] {
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_delta_3;
     }
@@ -227,8 +226,8 @@ pub fn phi_residual(delta: f64, tau: f64) -> f64 {
 pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
-    precompute_delta_powers!(delta, delta_2, delta_3, delta_4, delta_6,
-                           exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
+    precompute_delta_powers_exps!(delta, delta_2, delta_3, delta_4, delta_6,
+                                 exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
     //  Σᵢ₌₁⁷ nᵢdδᵈⁱ⁻¹τⁱ
     for term in &RES_POLY_D1 {
         sum += term.n * (term.d as f64) * delta.powi(term.d - 1) * tau.powf(term.t);
@@ -299,8 +298,8 @@ pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
 pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
-    precompute_delta_powers!(delta, delta_2, delta_3, delta_4, delta_6,
-                           exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
+    precompute_delta_powers_exps!(delta, delta_2, delta_3, delta_4, delta_6,
+                                 exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
 
     for term in &RES_POLY_D1 {
         let d = term.d as f64;
@@ -411,8 +410,8 @@ pub fn d2phi_residual_ddelta2(delta: f64, tau: f64) -> f64 {
 pub fn dphi_residual_dtau(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
-    precompute_delta_powers!(delta, delta_2, delta_3, delta_4, delta_6,
-                           exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
+    precompute_delta_powers_exps!(delta, delta_2, delta_3, delta_4, delta_6,
+                                 exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
 
     for term in &RES_POLY_D1 {
         sum += term.n * term.t * delta.powi(term.d) * tau.powf(term.t - 1.0);
@@ -468,8 +467,8 @@ pub fn dphi_residual_dtau(delta: f64, tau: f64) -> f64 {
 pub fn d2phi_residual_dtau2(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
-    precompute_delta_powers!(delta, delta_2, delta_3, delta_4, delta_6,
-                           exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
+    precompute_delta_powers_exps!(delta, delta_2, delta_3, delta_4, delta_6,
+                                 exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
 
     for term in &RES_POLY_D1 {
         let t = term.t;
@@ -563,8 +562,8 @@ pub fn d2phi_residual_dtau2(delta: f64, tau: f64) -> f64 {
 pub fn d2phi_residual_ddelta_dtau(delta: f64, tau: f64) -> f64 {
     let mut sum = 0.0f64;
 
-    precompute_delta_powers!(delta, delta_2, delta_3, delta_4, delta_6,
-                           exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
+    precompute_delta_powers_exps!(delta, delta_2, delta_3, delta_4, delta_6,
+                                 exp_delta, exp_delta_2, exp_delta_3, exp_delta_4, exp_delta_6);
 
     for term in &RES_POLY_D1 {
         sum += term.n * (term.d as f64) * term.t * delta.powi(term.d - 1) * tau.powf(term.t - 1.0);
