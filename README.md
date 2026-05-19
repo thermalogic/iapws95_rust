@@ -25,19 +25,13 @@ cargo doc --open
 
 ```rust
 use iapws95::iapws95::*;
-let t_c = 26.85;      // Temperature in Celsius，300.0K
-let rho =  0.9965560e3;       // Density (kg/m³) 
+let t_c = 26.85;                  // Temperature °C), 300.0K
+let rho =  0.9965560e3;          // Density (kg/m³) 
 
 let p    = tr2p(t_c, rho);        // Pressure (MPa)
 let u    = tr2u(t_c, rho);        // Internal energy (kJ/kg)
 let h    = tr2h(t_c, rho);        // Enthalpy (kJ/kg)
 let s    = tr2s(t_c, rho);        // Entropy (kJ/(kg·K))
-let cv   = tr2cv(t_c, rho);       // Constant-volume specific heat (kJ/(kg·K))
-let cp   = tr2cp(t_c, rho);       // Constant-pressure specific heat (kJ/(kg·K))
-let w    = tr2w(t_c, rho);        // Speed of sound (m/s)
-let mu   = tr2jt(t_c, rho);       // Joule-Thomson coefficient (K/MPa)
-let delta_T = tr2itt(t_c, rho);      // Isothermal throttling coefficient (kJ/(kg·MPa))
-let beta_s = tr2beta_s(t_c, rho); // Isentropic temperature-pressure coefficient (1/K)
 ```
 
 ## API Reference
