@@ -138,6 +138,7 @@ const RES_NON_ANAL: [NonAnalTerm; 2] = [
 ];
 
 #[inline]
+// exp[-αᵢ(δ-εᵢ)²-βᵢ(τ-γᵢ)²
 fn gauss_exp(term: &GaussTerm, delta: f64, tau: f64) -> f64 {
     let d_e = delta - term.e as f64;
     let t_g = tau - term.g;
@@ -153,20 +154,22 @@ pub fn phi_residual(delta: f64, tau: f64) -> f64 {
     let delta_4 = delta_3 * delta;
     let delta_6 = delta_4 * delta_2;
 
+     // Σᵢ nᵢ·δᵈⁱ·τᵗⁱ                                    [polynomial terms, i=1-7]
     for term in &RES_POLY_D1 {
         sum += term.n * delta.powi(term.d) * tau.powf(term.t);
     }
-
+    // Σᵢ nᵢ·δᵈⁱ·τᵗⁱ·exp(-δᶜⁱ)               [exponential terms, i=8-51]
+    // c=1
     let exp_delta = (-delta).exp();
     for term in &RES_EXP_D2_C1 {
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_delta;
     }
-
+    // c=2
     let exp_delta_2 = (-delta_2).exp();
     for term in &RES_EXP_D2_C2 {
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_delta_2;
     }
-
+    // c=3,4,6
     let exp_delta_3 = (-delta_3).exp();
     let exp_delta_4 = (-delta_4).exp();
     let exp_delta_6 = (-delta_6).exp();
@@ -182,21 +185,23 @@ pub fn phi_residual(delta: f64, tau: f64) -> f64 {
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_delta_6;
     }
 
-    // Gauss term： i=52~54
+    // Gauss term： i=52~54, Σᵢ nᵢ·δᵈⁱ·τᵗⁱ·exp[-αᵢ(δ-εᵢ)²-βᵢ(τ-γᵢ)²]     
     for term in &RES_GAUSS {
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * gauss_exp(term, delta, tau);
     }
-    // Non-an term： i=55~56
+    
+    // Non-an term： i=55~56b Σᵢ nᵢ·Δᵇⁱ·δ·F(δ,τ)
     for term in &RES_NON_ANAL {
         let d_1 = delta - 1.0;
         let d_1_2 = d_1 * d_1;
-        // θ 
+        // θ = (1 - τ) + Aᵢ[(δ - 1)²]^(1/(2βᵢ))
         let tita = (1.0 - tau) + term.A * d_1_2.powf(0.5 / term.bt);
-        // ψ 
+        // ψ = e^(-Cᵢ(δ - 1)² - Dᵢ(τ - 1)²)
         let term2 = tau - 1.0;
         let f_val = (-term.C as f64 * d_1_2 - term.D as f64 * term2 * term2).exp();
-        // ∆
+        // ∆ = θ² + Bᵢ[(δ - 1)²]^(aᵢ)
         let delta_val = tita * tita + term.B * d_1_2.powf(term.a);
+        // nᵢ·Δᵇⁱ·δ·F(δ,τ)
         sum += term.n * delta_val.powf(term.b) * delta * f_val;
     }
 
@@ -243,14 +248,14 @@ pub fn dphi_residual_ddelta(delta: f64, tau: f64) -> f64 {
         let deriv = (term.d as f64) - 6.0 * delta_6;
         sum += term.n * exp_delta_6 * delta.powi(term.d - 1) * tau.powi(term.t) * deriv;
     }
-    // Gauss term： i=52~54
+    // Gauss term： i=52~54，Σᵢ nᵢ·δᵈⁱ·τᵗⁱ·exp[-αᵢ(δ-εᵢ)²-βᵢ(τ-γᵢ)²]  
     for term in &RES_GAUSS {
         let exp_term = gauss_exp(term, delta, tau);
         let deriv = (term.d as f64) / delta - 2.0 * (term.a as f64) * (delta - term.e as f64);
         sum += term.n * delta.powi(term.d) * tau.powi(term.t) * exp_term * deriv;
         
     }
-     // Non-an term： i=55~56   
+    // Non-an term： i=55-56  Σᵢ nᵢ·Δᵇⁱ·δ·F(δ,τ) 
     for term in &RES_NON_ANAL {
         let d_1 = delta - 1.0;
         let d_1_2 = d_1 * d_1;
