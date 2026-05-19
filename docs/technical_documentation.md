@@ -2,7 +2,6 @@
 
 **Language:** Rust (Edition 2021)  
 **Standard:** IAPWS-95 (Revised 2018)
-**Version:** 0.2.1
 
 ## Table of Contents
 
