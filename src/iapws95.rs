@@ -86,9 +86,7 @@ pub(crate) fn calc_entropy(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let phi_o = phi_ideal(delta, tau);
     let phi_r = phi_residual(delta, tau);
-    let phi_o_t = dphi_ideal_dtau(tau);
-    let phi_r_t = dphi_residual_dtau(delta, tau);
-    let dphi_dtau = phi_o_t + phi_r_t;
+    let dphi_dtau = dphi_ideal_dtau(tau)+dphi_residual_dtau(delta, tau);
     IAPWS95_R * (tau * dphi_dtau - phi_o - phi_r)
 }
 
@@ -108,9 +106,9 @@ pub(crate) fn calc_enthalpy(T: f64, rho: f64) -> f64 {
 pub(crate) fn calc_cv(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
     let delta = reduced_density(rho);
-    let phi_o_tt = d2phi_ideal_dtau2(tau);
-    let phi_r_tt = d2phi_residual_dtau2(delta, tau);
-    IAPWS95_R * (-tau * tau * (phi_o_tt + phi_r_tt))
+    let d2phi_o_tau = d2phi_ideal_dtau2(tau);
+    let d2phi_r_tau2 = d2phi_residual_dtau2(delta, tau);
+    IAPWS95_R * (-tau * tau * (d2phi_o_tau + d2phi_r_tau2))
 }
 
 /// Compute isobaric heat capacity: cp = -R·τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²) + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) \[kJ/(kg·K)\]
@@ -121,11 +119,11 @@ pub(crate) fn calc_cp(T: f64, rho: f64) -> f64 {
     let dphi_ddelta = dphi_residual_ddelta(delta, tau);
     let d2phi_ddelta2 = d2phi_residual_ddelta2(delta, tau);
     let d2phi_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
-    let phi_o_tt = d2phi_ideal_dtau2(tau);
-    let phi_r_tt = d2phi_residual_dtau2(delta, tau);
+    let d2phi_o_tau2 = d2phi_ideal_dtau2(tau);
+    let d2phi_r_tau2 = d2phi_residual_dtau2(delta, tau);
 
     // cp = -R·τ²·(φ°_ττ + φʳ_ττ) + R * (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)² / (1 + 2δ*φʳ_δ + δ²*φʳ_δδ)
-    let cv_part = -tau * tau * (phi_o_tt + phi_r_tt);
+    let cv_part = -tau * tau * (d2phi_o_tau2 + d2phi_r_tau2);
     let numerator_term=1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau;
     let numerator =  numerator_term* numerator_term;
     let denominator = 1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta2;
@@ -140,18 +138,21 @@ pub(crate) fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
     let tau = inv_reduced_temp(T);
     
-    let dphi_ddelta = dphi_residual_ddelta(delta, tau);
-    let d2phi_ddelta2 = d2phi_residual_ddelta2(delta, tau);
-    let d2phi_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
-    let d2phi_dtau2_ideal = d2phi_ideal_dtau2(tau);
-    let d2phi_dtau2_residual = d2phi_residual_dtau2(delta, tau);
+    let dphi_r_ddelta = dphi_residual_ddelta(delta, tau);
+    let d2phi_r_ddelta2 = d2phi_residual_ddelta2(delta, tau);
+    let d2phi_r_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
+    let d2phi_o_dtau2 = d2phi_ideal_dtau2(tau);
+    let d2phi_r_dtau2 = d2phi_residual_dtau2(delta, tau);
+    
+    // (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)²
+    let term_numerator=1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
+    let numerator = term_numerator*term_numerator;
+    // (τ²*(φ°_ττ + φʳ_ττ))
+    let denominator = tau * tau * (d2phi_o_dtau2 + d2phi_r_dtau2);
     
     // w² = R*T * [1 + 2δ*φʳ_δ + δ²*φʳ_δδ - (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)² / (τ²*(φ°_ττ + φʳ_ττ))]
-    let numerator = (1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau).powi(2);
-    let denominator = tau * tau * (d2phi_dtau2_ideal + d2phi_dtau2_residual);
-    
-    let w_squared = IAPWS95_R * T * (
-        1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta2 
+     let w_squared = IAPWS95_R * T * (
+        1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2 
         - numerator / denominator
     );
     
