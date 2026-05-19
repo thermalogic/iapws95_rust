@@ -8,6 +8,14 @@
 //! # Internal Functions (pub(crate))
 //! - `calc_pressure`, `calc_internal_energy`, `calc_enthalpy`, `calc_entropy`, `calc_cv`, `calc_cp`, `calc_speed_of_sound`
 //! - `calc_joule_momson`, `calc_isothermal_throttling`, `calc_isentropic_temp_pressure`
+///
+/// Where:
+/// - δ = ρ/ρc (reduced density)
+/// - τ = Tc/T (inverse reduced temperature)
+/// - φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
+/// - φʳ_δτ = ∂²φʳ/∂δ∂τ (mixed second derivative)
+/// - φʳ_δδ = ∂²φʳ/∂δ² (second derivative w.r.t. δ)
+
 use crate::iapws95_ideal::*;
 use crate::iapws95_residual::*;
 
@@ -163,14 +171,11 @@ pub(crate) fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
 }
 
 /// Compute Joule-Thomson coefficient: μ = (∂T/∂p)_H [K/MPa]
+/// μ·R·ρ = Numerator/Denominator
+///     Numerator: -(δ·∂φʳ/∂δ+ δ²·∂²φʳ/∂δ² + δ·∂²φʳ/∂δ∂τ)
+///     Denominator: (1+(δ·φʳ/∂δ-δ·τ·∂²φʳ/∂δ∂τ))²
+///               -τ²·(∂²φ°/∂τ²+∂²φʳ/∂τ²)·(1 + 2δφʳ_δ + δ²φʳ_δδ)
 /// 
-/// 
-/// Where:
-/// - δ = ρ/ρc (reduced density)
-/// - τ = Tc/T (inverse reduced temperature)
-/// - φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
-/// - φʳ_δτ = ∂²φʳ/∂δ∂τ (mixed second derivative)
-/// - φʳ_δδ = ∂²φʳ/∂δ² (second derivative w.r.t. δ)
 #[inline]
 pub(crate) fn calc_joule_thomson(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
@@ -181,16 +186,19 @@ pub(crate) fn calc_joule_thomson(T: f64, rho: f64) -> f64 {
     let d2phi_r_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
     let d2phi_o_dtau2 = d2phi_ideal_dtau2(tau);
     let d2phi_r_dtau2 = d2phi_residual_dtau2(delta, tau);
-    // Numerator: -(δ·∂φʳ/∂δ+ δ²·∂²φʳ/∂δ² + δ·∂²φʳ/∂δ∂τ)
+    // Numerator: 
+    //  -(δ·∂φʳ/∂δ+ δ²·∂²φʳ/∂δ² + δ·∂²φʳ/∂δ∂τ)
     let numerator = -delta * (dphi_r_ddelta + delta*d2phi_r_ddelta2 + d2phi_r_ddelta_dtau);
-    // Denominator: (1+(δ·φʳ/∂δ-δ·τ·∂²φʳ/∂δ∂τ))²
-    //               -τ²·(∂²φ°/∂τ²+∂²φʳ/∂τ²)·(1 + 2δφʳ_δ + δ²φʳ_δδ)
-    let term0 = 1.0 + delta * (dphi_r_ddelta -  tau * d2phi_r_ddelta_dtau);
-    let term1 = term0*term0;
+    // Denominator: 
+    // (1+(δ·φʳ/∂δ-δ·τ·∂²φʳ/∂δ∂τ))²
+    // -τ²·(∂²φ°/∂τ²+∂²φʳ/∂τ²)·(1 + 2δφʳ_δ + δ²φʳ_δδ)
+    //
+    let term_1 = 1.0 + delta * (dphi_r_ddelta -  tau * d2phi_r_ddelta_dtau);
+    let term_1_2 = term_1*term_1;
     // τ²·(∂²φ°/∂τ²+∂²φʳ/∂τ²)·(1 + 2δφʳ_δ + δ²φʳ_δδ)
     let term2 = tau*tau*(d2phi_o_dtau2+d2phi_r_dtau2)
                      *(1.0 +  delta *(2.0 * dphi_r_ddelta +  delta * d2phi_r_ddelta2));
-    let denominator = IAPWS95_R *rho *(term1- term2);
+    let denominator = IAPWS95_R *rho *(term_1_2- term2);
     
     numerator / denominator
 }
