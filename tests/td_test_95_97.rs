@@ -54,7 +54,7 @@ fn test_comparison_pt_95_vs_97() {
         assert_approx_eq!(cp_95, cp_if97, 5.0e2);
         assert_approx_eq!(delta_95,delta_if97, 1.0e1);
         assert_approx_eq!(beta_95,beta_if97, 1.0e1);
-        //assert_approx_eq!(mu_95, mu_if97, 1.0);
+        assert_approx_eq!(mu_95, mu_if97, 1.0e-5);
     }
 }
 

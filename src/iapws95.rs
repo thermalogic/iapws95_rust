@@ -111,7 +111,9 @@ pub(crate) fn calc_cv(T: f64, rho: f64) -> f64 {
     IAPWS95_R * (-tau * tau * (d2phi_o_tau + d2phi_r_tau2))
 }
 
-/// Compute isobaric heat capacity: cp = -R·τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²) + R*(1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²)) \[kJ/(kg·K)\]
+/// Compute isobaric heat capacity  kJ/(kg·K):
+///  cp/R = -τ²·(∂²φ°/∂τ² + ∂²φʳ/∂τ²) + 
+///        (1 + δ*(∂φʳ/∂δ) - δ*τ*(∂²φʳ/∂δ∂τ))² / (1 + 2δ*(∂φʳ/∂δ) + δ²*(∂²φʳ/∂δ²))
 #[inline]
 pub(crate) fn calc_cp(T: f64, rho: f64) -> f64 {
     let tau = inv_reduced_temp(T);
@@ -122,17 +124,19 @@ pub(crate) fn calc_cp(T: f64, rho: f64) -> f64 {
     let d2phi_o_tau2 = d2phi_ideal_dtau2(tau);
     let d2phi_r_tau2 = d2phi_residual_dtau2(delta, tau);
 
-    // cp = -R·τ²·(φ°_ττ + φʳ_ττ) + R * (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)² / (1 + 2δ*φʳ_δ + δ²*φʳ_δδ)
+    // ·τ²·(φ°_ττ + φʳ_ττ)
     let cv_part = -tau * tau * (d2phi_o_tau2 + d2phi_r_tau2);
-    let numerator_term=1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau;
-    let numerator =  numerator_term* numerator_term;
-    let denominator = 1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta2;
+    //  (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)² / (1 + 2δ*φʳ_δ + δ²*φʳ_δδ)
+    let term_temp=1.0 + delta *( dphi_ddelta -  tau * d2phi_ddelta_dtau);
+    let numerator =  term_temp* term_temp;
+    let denominator = 1.0 + delta *(2.0 *  dphi_ddelta +  delta * d2phi_ddelta2);
 
     IAPWS95_R * (cv_part + numerator / denominator)
 }
 
-/// Compute speed of sound: w = √[R·T·(1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ² - N²/(τ²·∂²φ/∂τ²))] · √1000 [m/s]
-/// Where N = 1 + δ·∂φʳ/∂δ - δ·τ·∂²φʳ/∂δ∂τ
+/// Compute speed of sound m/s: 
+/// w²/RT = 1 + 2δ·∂φʳ/∂δ + δ²·∂²φʳ/∂δ² - N²/(τ²·(∂²φ°/∂τ²+∂²φʳ/∂τ²))
+///         N = 1 + δ·∂φʳ/∂δ - δ·τ·∂²φʳ/∂δ∂τ
 #[inline]
 pub(crate) fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
@@ -149,13 +153,11 @@ pub(crate) fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
     let numerator = term_numerator*term_numerator;
     // (τ²*(φ°_ττ + φʳ_ττ))
     let denominator = tau * tau * (d2phi_o_dtau2 + d2phi_r_dtau2);
-    
-    // w² = R*T * [1 + 2δ*φʳ_δ + δ²*φʳ_δδ - (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)² / (τ²*(φ°_ττ + φʳ_ττ))]
+    // w² 
      let w_squared = IAPWS95_R * T * (
-        1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2 
+        1.0 + delta *(2.0 * dphi_r_ddelta +  delta * d2phi_r_ddelta2)
         - numerator / denominator
-    );
-    
+    );    
     // Convert from kJ/kg to J/kg (multiply by 1000) then take sqrt for m/s
     (w_squared * 1000.0).sqrt()
 }
@@ -179,12 +181,15 @@ pub(crate) fn calc_joule_thomson(T: f64, rho: f64) -> f64 {
     let d2phi_r_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
     let d2phi_o_dtau2 = d2phi_ideal_dtau2(tau);
     let d2phi_r_dtau2 = d2phi_residual_dtau2(delta, tau);
-    
-    let numerator = -delta * (delta* d2phi_r_ddelta2+tau * d2phi_r_ddelta_dtau);
-    
+    // Numerator: -(δ·∂φʳ/∂δ+ δ²·∂²φʳ/∂δ² + δ·∂²φʳ/∂δ∂τ)
+    let numerator = -delta * (dphi_r_ddelta + delta*d2phi_r_ddelta2 + d2phi_r_ddelta_dtau);
+    // Denominator: (1+(δ·φʳ/∂δ-δ·τ·∂²φʳ/∂δ∂τ))²
+    //               -τ²·(∂²φ°/∂τ²+∂²φʳ/∂τ²)·(1 + 2δφʳ_δ + δ²φʳ_δδ)
     let term0 = 1.0 + delta * (dphi_r_ddelta -  tau * d2phi_r_ddelta_dtau);
     let term1 = term0*term0;
-    let term2 = tau*tau*(d2phi_o_dtau2+d2phi_r_dtau2)*(1.0 + 2.0 * delta *( dphi_r_ddelta +  delta * d2phi_r_ddelta2));
+    // τ²·(∂²φ°/∂τ²+∂²φʳ/∂τ²)·(1 + 2δφʳ_δ + δ²φʳ_δδ)
+    let term2 = tau*tau*(d2phi_o_dtau2+d2phi_r_dtau2)
+                     *(1.0 +  delta *(2.0 * dphi_r_ddelta +  delta * d2phi_r_ddelta2));
     let denominator = IAPWS95_R *rho *(term1- term2);
     
     numerator / denominator
