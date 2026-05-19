@@ -1,4 +1,4 @@
-# IAPWS-95 Thermodynamic Properties Library (Rust Implementation)
+# IAPWS-95 Thermodynamic Properties Library
 
 A Rust implementation of the [IAPWS-95](https://iapws.org/documents/release/IAPWS-95/) standard for calculating thermodynamic properties of water and steam.
 
@@ -39,7 +39,7 @@ All functions accept temperature in  in **°C** and density in kg/m³:
 | `tr2s(t_c, rho)`  | Entropy                                        | kJ/(kg·K)  |
 | `tr2cv(t_c, rho)` | Constant-volume specific heat                  | kJ/(kg·K)  |
 | `tr2cp(t_c, rho)` | Constant-pressure specific heat                | kJ/(kg·K)  |
-| `tr2w(t_c, rho)`  | Speed of sound at                              | m/s        |
+| `tr2w(t_c, rho)`  | Speed of sound                                 | m/s        |
 | `tr2jt(t_c, rho)` | Joule-Thomson coefficient                      | K/MPa      |
 | `tr2itt(t_c, rho)`| Isothermal throttling coefficient              | kJ/(kg·MPa)|
 | `tr2beta_s(t_c, rho)` | Isentropic temperature-pressure coefficient| 1/K        |
@@ -60,16 +60,6 @@ if let Some(props) = sat_t(100.0) {  // Temperature in °C
 }
 ```
 
-## Testing and Benchmarking
-
-```bash
-cargo test                    # Run all tests
-cargo test --test td_test     # Specific test
-```
-
-```bash
-cargo bench
-```
 ## Dependencies
 
 No external runtime dependencies. Only uses Rust standard library.
