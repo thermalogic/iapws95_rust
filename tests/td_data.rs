@@ -1,10 +1,3 @@
-#![allow(warnings)]
-///  cargo test --test td_test
-use assert_approx_eq::assert_approx_eq;
-use iapws95::iapws95::*;
-use iapws95::iapws95_ideal::*;
-use iapws95::iapws95_residual::*;
-
 pub struct PropD {
     pub T: f64,
     pub d: f64,
@@ -14,8 +7,7 @@ pub struct PropD {
     pub s: f64,
 }
 
-// Table 7， T,d,p,cv,w,s
-pub const TD_DATA: [PropD; 11] = [
+pub const TD_DATA_TABLE7: [PropD; 11] = [
     PropD { T: 300.0,    d: 0.9965560e3,   p: 0.992418352e-1, cv: 0.413018112e1,  w: 0.150151914e4, s: 0.393062643 },
     PropD { T: 300.0,    d: 0.1005308e4,   p: 0.200022515e2, cv: 0.406798347e1,  w: 0.153492501e4, s: 0.387405401 },
     PropD { T: 300.0,    d: 0.1188202e4,   p: 0.700004704e3, cv: 0.346135580e1,  w: 0.244357992e4, s: 0.132609616 },
@@ -29,18 +21,3 @@ pub const TD_DATA: [PropD; 11] = [
     PropD { T: 900.0,    d: 0.8707690e3,   p: 0.700000006e3, cv: 0.266422350e1,  w: 0.201933608e4, s: 0.417223802e1 },
 ];
 
-#[test]
-fn test_td() {
-    for i in 0..11 {
-        let T: f64 = TD_DATA[i].T;
-        let d: f64 = TD_DATA[i].d;
-        let t_c = T - 273.15;
-        // Test pressure
-        assert_approx_eq!(TD_DATA[i].p, tr2p(t_c, d), 1.0e-6f64);
-        assert_approx_eq!(TD_DATA[i].cv, tr2cv(t_c, d), 1.0e-6f64);
-        // Test entropy
-        assert_approx_eq!(TD_DATA[i].s, tr2s(t_c, d), 1.0e-6f64);
-        // Test speed of sound
-        assert_approx_eq!(TD_DATA[i].w, tr2w(t_c, d), 5.0e-6);  
-    }
-}

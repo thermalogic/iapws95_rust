@@ -126,7 +126,8 @@ pub(crate) fn calc_cp(T: f64, rho: f64) -> f64 {
 
     // cp = -R·τ²·(φ°_ττ + φʳ_ττ) + R * (1 + δ*φʳ_δ - δ*τ*φʳ_δτ)² / (1 + 2δ*φʳ_δ + δ²*φʳ_δδ)
     let cv_part = -tau * tau * (phi_o_tt + phi_r_tt);
-    let numerator = (1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau).powi(2);
+    let numerator_term=1.0 + delta * dphi_ddelta - delta * tau * d2phi_ddelta_dtau;
+    let numerator =  numerator_term* numerator_term;
     let denominator = 1.0 + 2.0 * delta * dphi_ddelta + delta * delta * d2phi_ddelta2;
 
     IAPWS95_R * (cv_part + numerator / denominator)
@@ -160,10 +161,6 @@ pub(crate) fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
 
 /// Compute Joule-Thomson coefficient: μ = (∂T/∂p)_H [K/MPa]
 /// 
-/// Based on thermodynamic relation: μ = [T(∂v/∂T)_p - v] / Cp
-/// 
-/// Derived from Helmholtz free energy formulation:
-/// μ = δ(τ·φʳ_δτ - φʳ_δ) / [ρ·Cp·(1 + 2δφʳ_δ + δ²φʳ_δδ)]
 /// 
 /// Where:
 /// - δ = ρ/ρc (reduced density)
@@ -171,7 +168,6 @@ pub(crate) fn calc_speed_of_sound(T: f64, rho: f64) -> f64 {
 /// - φʳ_δ = ∂φʳ/∂δ (first derivative of residual Helmholtz free energy w.r.t. δ)
 /// - φʳ_δτ = ∂²φʳ/∂δ∂τ (mixed second derivative)
 /// - φʳ_δδ = ∂²φʳ/∂δ² (second derivative w.r.t. δ)
-/// - Cp = Cv + R·(1 + δφʳ_δ - δτφʳ_δτ)² / (1 + 2δφʳ_δ + δ²φʳ_δδ)
 #[inline]
 pub(crate) fn calc_joule_thomson(T: f64, rho: f64) -> f64 {
     let delta = reduced_density(rho);
@@ -183,22 +179,17 @@ pub(crate) fn calc_joule_thomson(T: f64, rho: f64) -> f64 {
     let d2phi_o_dtau2 = d2phi_ideal_dtau2(tau);
     let d2phi_r_dtau2 = d2phi_residual_dtau2(delta, tau);
     
-    // Cv = -R·τ²·(φ°_ττ + φʳ_ττ)
-    let cv = IAPWS95_R * (-tau * tau * (d2phi_o_dtau2 + d2phi_r_dtau2));
+    let numerator = -delta * (delta* d2phi_r_ddelta2+tau * d2phi_r_ddelta_dtau);
     
-    // Cp = Cv + R·(1 + δφʳ_δ - δτφʳ_δτ)² / (1 + 2δφʳ_δ + δ²φʳ_δδ)
-    let term1 = 1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
-    let term2 = 1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2;
-    let cp = cv + IAPWS95_R * term1 * term1 / term2;
-    
-    // μ = δ(τ·φʳ_δτ - φʳ_δ) / [ρ·Cp·(1 + 2δφʳ_δ + δ²φʳ_δδ)]
-    let numerator = delta * (tau * d2phi_r_ddelta_dtau - dphi_r_ddelta);
-    let denominator = rho * cp * term2;
+    let term0 = 1.0 + delta * (dphi_r_ddelta -  tau * d2phi_r_ddelta_dtau);
+    let term1 = term0*term0;
+    let term2 = tau*tau*(d2phi_o_dtau2+d2phi_r_dtau2)*(1.0 + 2.0 * delta *( dphi_r_ddelta +  delta * d2phi_r_ddelta2));
+    let denominator = IAPWS95_R *rho *(term1- term2);
     
     numerator / denominator
 }
 
-/// Compute Isothermal throttling coefficient: (∂τ/∂p)_T
+/// Compute Isothermal throttling coefficient: (∂τ/∂p)_T kJ/(kg·MPa)
 /// 
 /// Based on IAPWS-95 Table 3 relations:
 /// (∂τ/∂p)_T = 1-(1 + δφʳ_δ - δτφʳ_δτ) / (1 + 2δφʳ_δ + δ²φʳ_δδ)
@@ -219,10 +210,10 @@ pub(crate) fn calc_isothermal_throttling(T: f64, rho: f64) -> f64 {
     let d2phi_r_ddelta_dtau = d2phi_residual_ddelta_dtau(delta, tau);
     
     // Numerator: 1 + δφʳ_δ - δτφʳ_δτ
-    let numerator = 1.0 + delta * dphi_r_ddelta - delta * tau * d2phi_r_ddelta_dtau;
+    let numerator = 1.0 + delta * (dphi_r_ddelta -  tau * d2phi_r_ddelta_dtau);
     
     // Denominator: 1 + 2δφʳ_δ + δ²φʳ_δδ
-    let denominator = 1.0 + 2.0 * delta * dphi_r_ddelta + delta * delta * d2phi_r_ddelta2;
+    let denominator = 1.0 + 2.0 * delta *( dphi_r_ddelta +  delta * d2phi_r_ddelta2);
     
     // (∂τ/p)_T = 1 - (1 + δφʳ_δ - δτφʳ_δτ) / (1 + 2δφ_δ + δ²φʳ_δδ)
     1.0 - (numerator / denominator)
