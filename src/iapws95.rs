@@ -343,7 +343,7 @@ pub fn tr2itt(t_c: f64, rho: f64) -> f64 {
     calc_isothermal_throttling(t_k, rho)
 }
 
-/// Calculate Isentropic temperature-pressure coefficient at given temperature (°C) and density \1/K]
+/// Calculate Isentropic temperature-pressure coefficient at given temperature (°C) and density \[1/K\]
 #[inline]
 pub fn tr2beta_s(t_c: f64, rho: f64) -> f64 {
     let t_k = t_c + 273.15;
