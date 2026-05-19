@@ -1,6 +1,6 @@
 [package]
 name = "iapws95"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "IAPWS-95 Thermodynamic Properties Library for Water/Steam - Rust Implementation"
 repository = "https://github.com/thermalogic/iapws95_rust"

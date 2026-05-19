@@ -11,21 +11,12 @@ The package is published on [crates.io](https://crates.io/crates/iapws95). Insta
 ```bash
 cargo install iapws95
 ```
-### Build from Source
-
-```bash
-git clone https://github.com/thermalogic/iapws95_rust.git
-cd iapws95_rust
-cargo build --release
-cargo test
-cargo doc --open
-```
 
 ### Usage
 
 ```rust
 use iapws95::iapws95::*;
-let t_c = 26.85;                  // Temperature °C), 300.0K
+let t_c = 26.85;                 // Temperature (°C), 300.0K
 let rho =  0.9965560e3;          // Density (kg/m³) 
 
 let p    = tr2p(t_c, rho);        // Pressure (MPa)
@@ -36,11 +27,11 @@ let s    = tr2s(t_c, rho);        // Entropy (kJ/(kg·K))
 
 ## API Reference
 
-### Single-Phase Properties (Temperature in °C)
+### Single-Phase Properties
 
-All functions accept temperature in **Celsius** and density in kg/m³:
+All functions accept temperature in  in **°C** and density in kg/m³:
 
-| Function          | Description  t_c(°C), rho(kg/m³)               | Returns    |
+| Function          | Description                                    | Returns    |
 | ----------------- | ---------------------------------------------- | ---------- |
 | `tr2p(t_c, rho)`  | Pressure                                       | MPa        |
 | `tr2u(t_c, rho)`  | Internal energy                                | kJ/kg      |
@@ -77,7 +68,7 @@ cargo test --test td_test     # Specific test
 ```
 
 ```bash
-cargo run --release --example benchmark
+cargo bench
 ```
 ## Dependencies
 
@@ -87,6 +78,7 @@ No external runtime dependencies. Only uses Rust standard library.
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
 criterion = { version = "0.8.2", features = ["html_reports"] }
+seuif97 = "1.0"
 ```
 
 ## References
